@@ -202,7 +202,17 @@ final class UserJourneyTests: XCTestCase {
         XCTAssertEqual(elapsed.label, paused)   // 일시정지 중엔 멈춰 있다
 
         app.buttons["resumeTimer"].tap()
-        app.buttons["finishBrew"].tap()
+
+        // 초기화: 저장 없이 0:00으로 돌아가 '타이머 시작'이 다시 보인다 (확인 다이얼로그 거침)
+        app.buttons["resetTimer"].tap()
+        let dialog = app.sheets.firstMatch   // confirmationDialog는 Sheet로 노출된다
+        XCTAssertTrue(dialog.waitForExistence(timeout: 3))
+        dialog.buttons["초기화"].tap()
+        XCTAssertTrue(app.buttons["startTimer"].waitForExistence(timeout: 3))
+
+        app.buttons["startTimer"].tap()
+        sleep(1)
+        app.buttons["finishBrew"].tap()   // '기록하기' → 새 기록 폼
         XCTAssertTrue(element(containing: "새 기록").waitForExistence(timeout: 3))
         // 추출 시간 필드(식별자 없음): 단계 시각 필드를 뺀 m:ss 값 필드
         let measured = app.textFields.matching(NSPredicate(format: "NOT identifier BEGINSWITH 'stepTime' AND value MATCHES '^[0-9]+:[0-9]{2}$'")).firstMatch

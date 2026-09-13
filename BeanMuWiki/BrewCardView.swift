@@ -8,6 +8,7 @@ struct BrewCardView: View {
     @State private var timer = BrewTimer()
     @State private var notesExpanded = false
     @State private var finishing = false
+    @State private var confirmingReset = false
 
     private var steps: [PourStep] { brew.steps }
     private var endSeconds: Int? {
@@ -47,11 +48,17 @@ struct BrewCardView: View {
                     } else {
                         wide("계속", id: "resumeTimer") { start() }.buttonStyle(.glassProminent)
                     }
-                    wide("추출 끝", id: "finishBrew") { finish() }.buttonStyle(.glass)
+                    wide("초기화", id: "resetTimer") { confirmingReset = true }.buttonStyle(.glass)
+                    wide("기록하기", id: "finishBrew") { finish() }.buttonStyle(.glass)
                 }
             }
             .controlSize(.large)
             .padding()
+        }
+        .confirmationDialog("타이머를 0:00으로 되돌릴까요?", isPresented: $confirmingReset, titleVisibility: .visible) {
+            Button("초기화", role: .destructive) { reset() }
+        } message: {
+            Text("지금까지 측정한 시간은 저장되지 않습니다. 기록을 남기려면 '기록하기'를 누르세요.")
         }
         .sheet(isPresented: $finishing) {
             if let bean = brew.bean {
@@ -169,6 +176,12 @@ struct BrewCardView: View {
         UIApplication.shared.isIdleTimerDisabled = true
     }
 
+    /// 저장 없이 멈추고 0:00으로. 다시 '타이머 시작' 상태가 된다.
+    private func reset() {
+        timer.reset()
+        UIApplication.shared.isIdleTimerDisabled = false
+    }
+
     /// 타이머를 멈추고 이 레시피로 새 기록(실측 시간 채움)을 연다. 원두가 없으면 멈추기만.
     private func finish() {
         timer.pause()
@@ -189,6 +202,7 @@ struct BrewCardView: View {
     }
     func start() { started = true; startDate = .now }
     func pause() { accumulated = elapsed(at: .now); startDate = nil }
+    func reset() { startDate = nil; accumulated = 0; started = false }
 }
 
 extension Brew {
