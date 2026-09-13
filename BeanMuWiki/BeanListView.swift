@@ -43,6 +43,7 @@ struct BeanListView: View {
             }
             .sheet(isPresented: $showingForm) { BeanFormView() }
             .alert("가져오기 실패", isPresented: $showingImportError) {} message: { Text(importError) }
+            .task { migrateLegacyIced() }
             #if DEBUG
             .task { seedIfNeeded() }
             #endif
@@ -85,6 +86,17 @@ private struct BeanRow: View {
                     }
                 }
             }
+        }
+    }
+}
+
+private extension BeanListView {
+    /// 0.4.0 이전에 method "V60 ICED"로 저장된 기록을 ICED 서빙으로 옮긴다. 대상이 없으면 아무 일도 안 함.
+    func migrateLegacyIced() {
+        let legacy = (try? context.fetch(FetchDescriptor<Brew>(predicate: #Predicate { $0.method.contains("ICED") }))) ?? []
+        for brew in legacy {
+            brew.isIced = true
+            brew.method = brew.method.replacingOccurrences(of: "ICED", with: "").trimmingCharacters(in: .whitespaces)
         }
     }
 }

@@ -49,16 +49,16 @@ struct BrewCardView: View {
                         wide("계속", id: "resumeTimer") { start() }.buttonStyle(.glassProminent)
                     }
                     wide("초기화", id: "resetTimer") { confirmingReset = true }.buttonStyle(.glass)
+                        .confirmationDialog("타이머를 0:00으로 되돌릴까요?", isPresented: $confirmingReset, titleVisibility: .visible) {
+                            Button("초기화", role: .destructive) { reset() }
+                        } message: {
+                            Text("지금까지 측정한 시간은 저장되지 않습니다. 기록을 남기려면 '기록하기'를 누르세요.")
+                        }
                     wide("기록하기", id: "finishBrew") { finish() }.buttonStyle(.glass)
                 }
             }
             .controlSize(.large)
             .padding()
-        }
-        .confirmationDialog("타이머를 0:00으로 되돌릴까요?", isPresented: $confirmingReset, titleVisibility: .visible) {
-            Button("초기화", role: .destructive) { reset() }
-        } message: {
-            Text("지금까지 측정한 시간은 저장되지 않습니다. 기록을 남기려면 '기록하기'를 누르세요.")
         }
         .sheet(isPresented: $finishing) {
             if let bean = brew.bean {
