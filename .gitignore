@@ -1,0 +1,9 @@
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcuserstate
+*.xcarchive
+*.ipa
+build/
+# macOS
+.DS_Store

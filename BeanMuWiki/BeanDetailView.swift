@@ -1,0 +1,101 @@
+import SwiftUI
+import SwiftData
+
+struct BeanDetailView: View {
+    let bean: Bean
+    @Environment(\.modelContext) private var context
+    @State private var editing = false
+    @State private var addingBrew = false
+    @State private var editingBrew: Brew?
+
+    private var brews: [Brew] { bean.brews.sorted { $0.date > $1.date } }
+    private var hasOrigin: Bool {
+        [bean.roaster, bean.country, bean.region, bean.farm, bean.altitude, bean.variety, bean.process, bean.roastLevel]
+            .contains { !$0.isEmpty } || bean.pageURL != nil
+    }
+
+    var body: some View {
+        List {
+            if let image = bean.photo.flatMap(UIImage.init(data:)) {
+                Section {
+                    Image(uiImage: image).resizable().scaledToFit()
+                        .frame(maxWidth: .infinity)
+                        .listRowInsets(EdgeInsets())
+                }
+            }
+            if hasOrigin {
+                Section("원산지") {
+                    info("로스터리", bean.roaster)
+                    info("원산지", bean.country)
+                    info("산지 / 재배지", bean.region)
+                    info("농장", bean.farm)
+                    info("고도", bean.altitude)
+                    info("품종", bean.variety)
+                    info("가공", bean.process)
+                    info("로스팅", bean.roastLevel)
+                    if let url = bean.pageURL {
+                        Link(destination: url) { Label("판매 페이지 열기", systemImage: "safari") }
+                    }
+                }
+            }
+            if !bean.cupNotes.isEmpty {
+                Section("컵노트") { FlavorChips(tags: bean.cupNotes) }
+            }
+            if !bean.memo.isEmpty {
+                Section("메모") { Text(bean.memo) }
+            }
+            Section("추출 기록") {
+                Button("기록 추가", systemImage: "plus") { addingBrew = true }
+                ForEach(brews) { brew in
+                    Button { editingBrew = brew } label: { BrewRow(brew: brew) }
+                }
+                .onDelete { offsets in
+                    for i in offsets { context.delete(brews[i]) }
+                }
+            }
+        }
+        .navigationTitle(bean.name)
+        .toolbar {
+            Button("편집") { editing = true }
+        }
+        .sheet(isPresented: $editing) { BeanFormView(bean: bean) }
+        .sheet(isPresented: $addingBrew) { BrewFormView(bean: bean) }
+        .sheet(item: $editingBrew) { BrewFormView(brew: $0) }
+    }
+
+    @ViewBuilder
+    private func info(_ label: String, _ value: String) -> some View {
+        if !value.isEmpty { LabeledContent(label, value: value) }
+    }
+}
+
+private struct BrewRow: View {
+    let brew: Brew
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(brew.method).font(.headline)
+                if brew.isFavorite {
+                    Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow)
+                }
+                Spacer()
+                Text(brew.stars).foregroundStyle(.orange)
+            }
+            let parts: [String?] = [
+                brew.date.formatted(date: .abbreviated, time: .omitted),
+                brew.ratioText,
+                brew.time.isEmpty ? nil : brew.time,
+            ]
+            Text(parts.compactMap { $0 }.joined(separator: " · "))
+                .font(.subheadline).foregroundStyle(.secondary)
+            if let summary = brew.stepsSummary {
+                Text(summary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            if !brew.notes.isEmpty {
+                Text(brew.notes).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            }
+        }
+        .foregroundStyle(Color.primary)
+    }
+}

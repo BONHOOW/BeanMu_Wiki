@@ -1,0 +1,78 @@
+# BeanMuWiki
+
+**내가 마신 원두를 문서처럼 쌓아 두는 개인용 커피 위키.** 이름은 Bean + 나무위키에서 왔습니다. 원두 한 봉지가 백과사전 항목 하나가 되고, 그 아래에 추출 기록이 편집 이력처럼 쌓입니다.
+
+## 무엇을 하는 앱인가
+
+홈카페에서 원두를 바꿀 때마다 같은 질문을 반복하게 됩니다. 이 원두는 어디 농장 것이었지, 지난번에 몇 도로 몇 그램 내렸더니 괜찮았지, 컵노트에 뭐라고 적혀 있었지. BeanMuWiki는 그 답을 원두별 문서 한 장에 모읍니다.
+
+- **원두 문서** — 로스터리, 원산지, 산지/재배지, 농장, 고도, 품종, 가공 방식, 로스팅 포인트, 판매 페이지, 패키지 사진, 메모
+- **컵노트** — SCA 커피 플레이버 휠 기반 97개 향미를 9개 카테고리(과일, 신맛/발효, 녹색/채소, 기타, 구운, 향신료, 견과/코코아, 단맛, 꽃)와 색으로 고릅니다. 목록에서는 색 점으로 보여 원두를 한눈에 구분할 수 있습니다.
+- **추출 기록** — 추출 중 바뀌지 않는 조건(원두 g, 물 온도, 분쇄도)과 **푸어 단계 슬롯**(몇 초에 누적 몇 g을 어떤 방식으로)을 나눠 적습니다. 단계를 추가하면 물 총량과 비율이 따라 계산됩니다. 평점과 노트를 남기고, 잘 나온 기록을 ★ 기준 레시피로 두면 다음 기록이 그 값으로 미리 채워집니다.
+- **ChatGPT 연동 (앱 안에 AI 없음)** — 함께 들어 있는 프롬프트(`ChatGPT_Prompt.md`)에 원두를 알려주면 ChatGPT가 산지·품종·가공·컵노트를 조사하고 V60 레시피를 설계한 뒤 마지막에 JSON을 출력합니다. 그 JSON을 복사해 앱의 **가져오기** 버튼을 누르면 원두 문서와 기준 레시피가 한 번에 만들어집니다. 맛 피드백을 주고 받은 보정 레시피도 같은 방법으로 붙여넣으면 기존 원두에 기록만 추가됩니다.
+
+모든 데이터는 기기 안(SwiftData)에만 저장됩니다. 계정도 서버도 없습니다.
+
+## 화면
+
+| 원두 목록 | 원두 문서 | 추출 기록 (푸어 단계) | 플레이버 피커 |
+|---|---|---|---|
+| ![목록](docs/screenshots/01-list.png) | ![상세](docs/screenshots/02-detail.png) | ![기록](docs/screenshots/03-brew-steps.png) | ![피커](docs/screenshots/04-flavor-picker.png) |
+
+## 요구 사항
+
+Xcode 26.6 이상, iOS 26.0 이상. 외부 의존성 없음 (SwiftUI + SwiftData).
+
+## 실행
+
+```
+open BeanMuWiki.xcodeproj      # 시뮬레이터 또는 연결된 iPhone 선택 후 ⌘R
+```
+
+- `-seed` 런치 인자: 샘플 원두 1개와 기록 2개(푸어 단계 포함)를 넣고 시작 (DEBUG 전용)
+- `-inMemory` 런치 인자: 저장하지 않는 빈 상태로 시작 (UI 테스트가 사용)
+
+실기기 설치는 타깃 → Signing & Capabilities에서 본인 Team을 고른 뒤 ⌘R. 무료 Apple ID는 7일마다 재설치가 필요합니다.
+
+## 테스트
+
+```
+xcodebuild test -project BeanMuWiki.xcodeproj -scheme BeanMuWiki \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+```
+
+- `BeanMuWikiTests/` — Swift Testing 단위 테스트 (비율·별점·기준 레시피·URL 보정·사진 축소·푸어 단계 파싱·JSON 가져오기·플레이버 휠 데이터)
+- `BeanMuWikiUITests/` — XCTest 유저 저니 (원두 추가 → 플레이버 선택 → 기록 추가 → 저장, 클립보드 JSON 가져오기)
+
+## ChatGPT로 원두와 레시피 넣기
+
+1. `ChatGPT_Prompt.md` 전체를 ChatGPT 대화의 첫 메시지(또는 프로젝트 지침)로 넣고 원두 이름·로스터리를 알려줍니다.
+2. 답변 맨 끝의 ```json 코드블록을 복사합니다.
+3. 앱 목록 화면 상단 **가져오기**(클립보드 아이콘)를 누릅니다. 처음 한 번 iOS가 붙여넣기 허용을 물어보면 허용합니다.
+
+JSON 스키마는 프롬프트의 📦 섹션이 기준이고, 파서는 `BeanMuWiki/Models.swift`의 `BeanImport`입니다. 프롬프트는 하리오 V60 + 홀츠클로츠 E80 그라인더 기준으로 쓰여 있으니 장비가 다르면 "고정 장비 세팅" 부분만 고쳐 쓰면 됩니다.
+
+## 구조
+
+```
+BeanMuWiki/
+  Models.swift          Bean, Brew, PourStep 모델과 BeanImport(JSON 파서)
+  FlavorWheel.swift     SCA 플레이버 휠 데이터 (9카테고리 97향미, 한글·영문·색상)
+  FlavorViews.swift     플레이버 피커 시트, 칩, 색 점
+  BeanListView.swift    원두 목록, 가져오기
+  BeanDetailView.swift  원두 문서, 추출 기록 목록
+  BeanFormView.swift    원두 생성/편집 (사진, URL, 플레이버)
+  BrewFormView.swift    추출 기록 생성/편집 (조건 + 푸어 단계 + 평가)
+BeanMuWikiTests/        단위 테스트
+BeanMuWikiUITests/      UI 테스트
+ChatGPT_Prompt.md       레시피 설계 프롬프트 + Import JSON 스키마
+docs/                   로드맵(ROADMAP.md), 디자인 방향(DESIGN_DIRECTION.md), 스크린샷
+```
+
+## 로드맵
+
+시장조사(`docs/ROADMAP.md`) 기준 다음 순서로 붙일 예정입니다: 로스팅 날짜와 신선도 배지 → 맛 5축 레이더 → 로스터리·산지별 색인 페이지 → 구매 정보 → 추출 스톱워치 → 패키지 사진 텍스트 인식 → JSON 내보내기와 iCloud 동기화.
+
+## 라이선스
+
+MIT — `LICENSE` 참고.
