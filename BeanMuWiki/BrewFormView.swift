@@ -22,6 +22,16 @@ struct BrewFormView: View {
         bean = nil
     }
 
+    /// 추출 카드의 "추출 끝": 이 레시피대로 새 기록을 만들고 실측 시간만 채운다. 평점·기준 레시피는 비워 둔다.
+    init(bean: Bean, template: Brew, measuredTime: String) {
+        let brew = Brew(template: template)
+        brew.time = measuredTime
+        brew.rating = 0
+        brew.isFavorite = false
+        _brew = State(initialValue: brew)
+        self.bean = bean
+    }
+
     var body: some View {
         NavigationStack {
             Form {

@@ -45,6 +45,20 @@ struct BeanDetailView: View {
                 Section("메모") { Text(bean.memo) }
             }
             Section("추출 기록") {
+                if let fav = bean.favoriteBrew {
+                    NavigationLink { BrewCardView(brew: fav) } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("추출 카드 열기")
+                                Text((fav.isFavorite ? "★ 기준 레시피" : "최근 기록") + " · " + fav.conditionLine)
+                                    .font(.caption).foregroundStyle(.secondary).monospacedDigit().lineLimit(1)
+                            }
+                        } icon: {
+                            Image(systemName: "timer")
+                        }
+                    }
+                    .accessibilityIdentifier("openBrewCard")
+                }
                 Button("기록 추가", systemImage: "plus") { addingBrew = true }
                 ForEach(brews) { brew in
                     Button { editingBrew = brew } label: { BrewRow(brew: brew) }

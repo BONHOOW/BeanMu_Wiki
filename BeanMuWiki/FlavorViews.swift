@@ -9,6 +9,8 @@ struct OptionPickerSheet: View {
     var singleSelection = false
     var prompt = "검색 또는 직접 입력"
     var searchIdentifier = "optionSearch"
+    /// 직접 입력을 목록 표준 이름으로 (nil = BeanOptions.canonicalName). 플레이버 피커는 FlavorWheel.canonicalName.
+    var canonicalize: (@MainActor (String) -> String?)?
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
     @State private var group: String?   // nil = 전체
@@ -20,6 +22,7 @@ struct OptionPickerSheet: View {
         return base.filter { $0.name.localizedStandardContains(query) || $0.english.localizedStandardContains(query) }
     }
     private var customs: [String] { selection.filter { BeanOptions.option(named: $0, in: groups) == nil } }
+    private var canonical: String { canonicalize.flatMap { $0(query) } ?? BeanOptions.canonicalName(query, in: groups) ?? query }
 
     var body: some View {
         NavigationStack {
@@ -46,8 +49,8 @@ struct OptionPickerSheet: View {
                 List {
                     ForEach(options) { row($0) }
                     if !query.isEmpty, !options.contains(where: { $0.name == query }) {
-                        Button("\"\(query)\" 직접 추가", systemImage: "plus") {
-                            if singleSelection || !selection.contains(query) { select(query) }
+                        Button(canonical == query ? "\"\(query)\" 직접 추가" : "\"\(query)\" → \(canonical) 추가", systemImage: "plus") {
+                            if singleSelection || !selection.contains(canonical) { select(canonical) }
                             search = ""
                         }
                     }
@@ -87,7 +90,10 @@ struct OptionPickerSheet: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(option.name)
-                    if !option.english.isEmpty { Text(option.english).font(.caption).foregroundStyle(.secondary) }
+                    // english에는 검색용 별칭이 " · "로 이어져 있어 첫 표기만 보여 준다
+                    if let first = option.english.split(separator: " · ").first, !first.isEmpty {
+                        Text(first).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
                 if selection.contains(option.name) {
@@ -111,7 +117,7 @@ struct FlavorPickerSheet: View {
 
     var body: some View {
         OptionPickerSheet(title: "플레이버", groups: BeanOptions.flavors, selection: $selection,
-                          prompt: "향과 맛을 검색해보세요", searchIdentifier: "flavorSearch")
+                          prompt: "향과 맛을 검색해보세요", searchIdentifier: "flavorSearch", canonicalize: { FlavorWheel.canonicalName($0) })
     }
 }
 

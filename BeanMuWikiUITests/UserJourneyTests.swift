@@ -55,6 +55,11 @@ final class UserJourneyTests: XCTestCase {
 
     private func value(of id: String) -> String { (app.buttons[id].value as? String) ?? "" }
 
+    /// 루트 TabView의 탭 ("원두" / "레시피")
+    private func tab(_ name: String) -> XCUIElement {
+        app.tabBars.buttons[name].exists ? app.tabBars.buttons[name] : app.buttons[name]
+    }
+
     /// 빈 상태 → 원두 추가(플레이버 시트) → 목록 → 상세 → 기록 추가(푸어 단계·물 총량 동기화·비율) → 상세에 기록 표시
     func testUserJourney() {
         app.launch()
@@ -156,7 +161,7 @@ final class UserJourneyTests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
         let addBrew = app.buttons["기록 추가"]
-        XCTAssertTrue(addBrew.waitForExistence(timeout: 3))
+        scrollTo(addBrew)   // 원산지 행이 많은 원두는 "추출 카드 열기" 아래의 이 행이 화면 밖일 수 있다
         addBrew.tap()
 
         let time0 = app.textFields["stepTime0"]
@@ -171,5 +176,61 @@ final class UserJourneyTests: XCTestCase {
 
         XCTAssertTrue(app.textFields["stepTime3"].waitForNonExistence(timeout: 3))
         XCTAssertEqual(time0.value as? String, "0:45")
+    }
+
+    /// 레시피 탭 → 추출 카드 → 타이머 시작(경과 표시가 움직임)/일시정지(멈춤)/계속 → 추출 끝 → 실측 시간이 채워진 새 기록 저장
+    /// → 원두 상세에 평점 없는(☆☆☆☆☆) 기록이 추가된다
+    func testRecipeTabAndTimer() {
+        app.launchArguments.append("-seed")
+        app.launch()
+        tab("레시피").tap()
+        let card = element(containing: "에티오피아 예가체프 G1")
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        card.tap()
+
+        let start = app.buttons["startTimer"]
+        XCTAssertTrue(start.waitForExistence(timeout: 3))
+        start.tap()
+        let elapsed = app.staticTexts["elapsedTime"]
+        XCTAssertTrue(elapsed.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts.matching(identifier: "elapsedTime").matching(NSPredicate(format: "label != '0:00'"))
+            .firstMatch.waitForExistence(timeout: 3))   // 경과 시간이 움직인다
+
+        app.buttons["pauseTimer"].tap()
+        let paused = elapsed.label
+        sleep(2)
+        XCTAssertEqual(elapsed.label, paused)   // 일시정지 중엔 멈춰 있다
+
+        app.buttons["resumeTimer"].tap()
+        app.buttons["finishBrew"].tap()
+        XCTAssertTrue(element(containing: "새 기록").waitForExistence(timeout: 3))
+        // 추출 시간 필드(식별자 없음): 단계 시각 필드를 뺀 m:ss 값 필드
+        let measured = app.textFields.matching(NSPredicate(format: "NOT identifier BEGINSWITH 'stepTime' AND value MATCHES '^[0-9]+:[0-9]{2}$'")).firstMatch
+        scrollTo(measured)
+        XCTAssertNotEqual(measured.value as? String, "0:00")
+        app.buttons["저장"].tap()
+        XCTAssertTrue(app.buttons["저장"].waitForNonExistence(timeout: 3))   // 시트 닫힘 → 카드로 복귀
+
+        app.navigationBars.buttons.firstMatch.tap()   // 뒤로 (카드에선 탭 바가 숨겨진다)
+        let beans = tab("원두")
+        XCTAssertTrue(beans.waitForExistence(timeout: 3))
+        beans.tap()
+        let row = element(containing: "에티오피아 예가체프 G1")
+        XCTAssertTrue(row.waitForExistence(timeout: 3))
+        row.tap()
+        scrollTo(element(containing: "☆☆☆☆☆"))   // 평점 0으로 저장된 새 기록
+    }
+
+    /// 상세 화면 상단 "추출 카드 열기" 행 → 추출 카드
+    func testOpenBrewCardFromDetail() {
+        app.launchArguments.append("-seed")
+        app.launch()
+        let row = element(containing: "에티오피아 예가체프 G1")
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        let open = app.descendants(matching: .any).matching(identifier: "openBrewCard").firstMatch
+        scrollTo(open)
+        open.tap()
+        XCTAssertTrue(app.buttons["startTimer"].waitForExistence(timeout: 3))
     }
 }

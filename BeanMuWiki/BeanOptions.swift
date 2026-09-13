@@ -46,55 +46,55 @@ enum BeanOptions {
     // MARK: 원산지
     static let countries: [BeanOptionGroup] = [
         BeanOptionGroup(name: "아프리카", hex: "#C0673A", options: [
-            BeanOption(name: "에티오피아", english: "Ethiopia", emoji: "🇪🇹", hex: "#C0673A"),
-            BeanOption(name: "케냐", english: "Kenya", emoji: "🇰🇪", hex: "#C0673A"),
+            BeanOption(name: "에티오피아", english: "Ethiopia · 에디오피아 · 이디오피아", emoji: "🇪🇹", hex: "#C0673A"),
+            BeanOption(name: "케냐", english: "Kenya · 캐냐 · 켄야", emoji: "🇰🇪", hex: "#C0673A"),
             BeanOption(name: "르완다", english: "Rwanda", emoji: "🇷🇼", hex: "#C0673A"),
             BeanOption(name: "부룬디", english: "Burundi", emoji: "🇧🇮", hex: "#C0673A"),
             BeanOption(name: "탄자니아", english: "Tanzania", emoji: "🇹🇿", hex: "#C0673A"),
             BeanOption(name: "우간다", english: "Uganda", emoji: "🇺🇬", hex: "#C0673A"),
-            BeanOption(name: "콩고민주공화국", english: "DR Congo · Democratic Republic of the Congo", emoji: "🇨🇩", hex: "#C0673A"),
+            BeanOption(name: "콩고민주공화국", english: "DR Congo · Democratic Republic of the Congo · Congo · 콩고", emoji: "🇨🇩", hex: "#C0673A"),
             BeanOption(name: "말라위", english: "Malawi", emoji: "🇲🇼", hex: "#C0673A"),
             BeanOption(name: "잠비아", english: "Zambia", emoji: "🇿🇲", hex: "#C0673A"),
             BeanOption(name: "짐바브웨", english: "Zimbabwe", emoji: "🇿🇼", hex: "#C0673A"),
         ]),
         BeanOptionGroup(name: "중앙아메리카·카리브", hex: "#3F8F6B", options: [
-            BeanOption(name: "과테말라", english: "Guatemala", emoji: "🇬🇹", hex: "#3F8F6B"),
-            BeanOption(name: "코스타리카", english: "Costa Rica", emoji: "🇨🇷", hex: "#3F8F6B"),
+            BeanOption(name: "과테말라", english: "Guatemala · 구아테말라", emoji: "🇬🇹", hex: "#3F8F6B"),
+            BeanOption(name: "코스타리카", english: "Costa Rica · 코스타 리카", emoji: "🇨🇷", hex: "#3F8F6B"),
             BeanOption(name: "온두라스", english: "Honduras", emoji: "🇭🇳", hex: "#3F8F6B"),
-            BeanOption(name: "엘살바도르", english: "El Salvador", emoji: "🇸🇻", hex: "#3F8F6B"),
-            BeanOption(name: "니카라과", english: "Nicaragua", emoji: "🇳🇮", hex: "#3F8F6B"),
-            BeanOption(name: "파나마", english: "Panama", emoji: "🇵🇦", hex: "#3F8F6B"),
-            BeanOption(name: "멕시코", english: "Mexico", emoji: "🇲🇽", hex: "#3F8F6B"),
-            BeanOption(name: "자메이카", english: "Jamaica", emoji: "🇯🇲", hex: "#3F8F6B"),
-            BeanOption(name: "도미니카공화국", english: "Dominican Republic", emoji: "🇩🇴", hex: "#3F8F6B"),
+            BeanOption(name: "엘살바도르", english: "El Salvador · 엘 살바도르", emoji: "🇸🇻", hex: "#3F8F6B"),
+            BeanOption(name: "니카라과", english: "Nicaragua · 니카라구아", emoji: "🇳🇮", hex: "#3F8F6B"),
+            BeanOption(name: "파나마", english: "Panama · 빠나마", emoji: "🇵🇦", hex: "#3F8F6B"),
+            BeanOption(name: "멕시코", english: "Mexico · 멕시코", emoji: "🇲🇽", hex: "#3F8F6B"),
+            BeanOption(name: "자메이카", english: "Jamaica · 자마이카", emoji: "🇯🇲", hex: "#3F8F6B"),
+            BeanOption(name: "도미니카공화국", english: "Dominican Republic · 도미니카", emoji: "🇩🇴", hex: "#3F8F6B"),
             BeanOption(name: "쿠바", english: "Cuba", emoji: "🇨🇺", hex: "#3F8F6B"),
-            BeanOption(name: "푸에르토리코", english: "Puerto Rico", emoji: "🇵🇷", hex: "#3F8F6B"),
-            BeanOption(name: "아이티", english: "Haiti", emoji: "🇭🇹", hex: "#3F8F6B"),
+            BeanOption(name: "푸에르토리코", english: "Puerto Rico · 푸에르토 리코", emoji: "🇵🇷", hex: "#3F8F6B"),
+            BeanOption(name: "아이티", english: "Haiti · 하이티", emoji: "🇭🇹", hex: "#3F8F6B"),
         ]),
         BeanOptionGroup(name: "남아메리카", hex: "#D6A23A", options: [
-            BeanOption(name: "브라질", english: "Brazil", emoji: "🇧🇷", hex: "#D6A23A"),
-            BeanOption(name: "콜롬비아", english: "Colombia", emoji: "🇨🇴", hex: "#D6A23A"),
-            BeanOption(name: "페루", english: "Peru", emoji: "🇵🇪", hex: "#D6A23A"),
+            BeanOption(name: "브라질", english: "Brazil · Brasil · 브라질", emoji: "🇧🇷", hex: "#D6A23A"),
+            BeanOption(name: "콜롬비아", english: "Colombia · Columbia · 콜럼비아 · 컬럼비아", emoji: "🇨🇴", hex: "#D6A23A"),
+            BeanOption(name: "페루", english: "Peru · 페루", emoji: "🇵🇪", hex: "#D6A23A"),
             BeanOption(name: "볼리비아", english: "Bolivia", emoji: "🇧🇴", hex: "#D6A23A"),
-            BeanOption(name: "에콰도르", english: "Ecuador", emoji: "🇪🇨", hex: "#D6A23A"),
+            BeanOption(name: "에콰도르", english: "Ecuador · 에콰돌 · 에쿠아도르", emoji: "🇪🇨", hex: "#D6A23A"),
             BeanOption(name: "베네수엘라", english: "Venezuela", emoji: "🇻🇪", hex: "#D6A23A"),
         ]),
         BeanOptionGroup(name: "아시아·태평양", hex: "#4C7BB0", options: [
-            BeanOption(name: "인도네시아", english: "Indonesia", emoji: "🇮🇩", hex: "#4C7BB0"),
-            BeanOption(name: "베트남", english: "Vietnam", emoji: "🇻🇳", hex: "#4C7BB0"),
+            BeanOption(name: "인도네시아", english: "Indonesia · 인니", emoji: "🇮🇩", hex: "#4C7BB0"),
+            BeanOption(name: "베트남", english: "Vietnam · Viet Nam", emoji: "🇻🇳", hex: "#4C7BB0"),
             BeanOption(name: "인도", english: "India", emoji: "🇮🇳", hex: "#4C7BB0"),
-            BeanOption(name: "파푸아뉴기니", english: "Papua New Guinea · PNG", emoji: "🇵🇬", hex: "#4C7BB0"),
-            BeanOption(name: "예멘", english: "Yemen", emoji: "🇾🇪", hex: "#4C7BB0"),
-            BeanOption(name: "중국(윈난)", english: "China · Yunnan", emoji: "🇨🇳", hex: "#4C7BB0"),
-            BeanOption(name: "태국", english: "Thailand", emoji: "🇹🇭", hex: "#4C7BB0"),
-            BeanOption(name: "미얀마", english: "Myanmar", emoji: "🇲🇲", hex: "#4C7BB0"),
+            BeanOption(name: "파푸아뉴기니", english: "Papua New Guinea · PNG · 파푸아 뉴기니", emoji: "🇵🇬", hex: "#4C7BB0"),
+            BeanOption(name: "예멘", english: "Yemen · 예맨", emoji: "🇾🇪", hex: "#4C7BB0"),
+            BeanOption(name: "중국(윈난)", english: "China · Yunnan · 중국 · 윈난 · 운남", emoji: "🇨🇳", hex: "#4C7BB0"),
+            BeanOption(name: "태국", english: "Thailand · 타일랜드", emoji: "🇹🇭", hex: "#4C7BB0"),
+            BeanOption(name: "미얀마", english: "Myanmar · Burma · 버마", emoji: "🇲🇲", hex: "#4C7BB0"),
             BeanOption(name: "라오스", english: "Laos", emoji: "🇱🇦", hex: "#4C7BB0"),
             BeanOption(name: "필리핀", english: "Philippines", emoji: "🇵🇭", hex: "#4C7BB0"),
-            BeanOption(name: "동티모르", english: "Timor-Leste · East Timor", emoji: "🇹🇱", hex: "#4C7BB0"),
-            BeanOption(name: "대만", english: "Taiwan", emoji: "🇹🇼", hex: "#4C7BB0"),
+            BeanOption(name: "동티모르", english: "Timor-Leste · East Timor · 티모르", emoji: "🇹🇱", hex: "#4C7BB0"),
+            BeanOption(name: "대만", english: "Taiwan · 타이완", emoji: "🇹🇼", hex: "#4C7BB0"),
             BeanOption(name: "네팔", english: "Nepal", emoji: "🇳🇵", hex: "#4C7BB0"),
-            BeanOption(name: "하와이(미국)", english: "Hawaii · USA · Kona", emoji: "🇺🇸", hex: "#4C7BB0"),
-            BeanOption(name: "호주", english: "Australia", emoji: "🇦🇺", hex: "#4C7BB0"),
+            BeanOption(name: "하와이(미국)", english: "Hawaii · USA · Kona · 하와이 · 코나 · 미국", emoji: "🇺🇸", hex: "#4C7BB0"),
+            BeanOption(name: "호주", english: "Australia · 오스트레일리아", emoji: "🇦🇺", hex: "#4C7BB0"),
         ]),
     ]
 
@@ -102,7 +102,7 @@ enum BeanOptions {
     static let varieties: [BeanOptionGroup] = [
         BeanOptionGroup(name: "에티오피아 재래종", hex: "#B8465A", options: [
             BeanOption(name: "게이샤", english: "Geisha · Gesha · 게샤", emoji: "", hex: "#B8465A"),
-            BeanOption(name: "헤어룸", english: "Heirloom · Landrace · 에어룸 · 재래종", emoji: "", hex: "#B8465A"),
+            BeanOption(name: "헤어룸", english: "Heirloom · Ethiopian Heirloom · Ethiopia Heirloom · Landrace · 에어룸 · 에티오피안 헤어룸 · 재래종 · 에티오피아 재래종 · 토착종", emoji: "", hex: "#B8465A"),
             BeanOption(name: "74110", english: "JARC 74110", emoji: "", hex: "#B8465A"),
             BeanOption(name: "74158", english: "JARC 74158", emoji: "", hex: "#B8465A"),
             BeanOption(name: "74112", english: "JARC 74112", emoji: "", hex: "#B8465A"),
@@ -168,8 +168,8 @@ enum BeanOptions {
             BeanOption(name: "리베리카", english: "Liberica · Coffea liberica", emoji: "", hex: "#8A7565"),
             BeanOption(name: "엑셀사", english: "Excelsa · Coffea excelsa", emoji: "", hex: "#8A7565"),
             BeanOption(name: "유게니오이데스", english: "Eugenioides · Coffea eugenioides", emoji: "", hex: "#8A7565"),
-            BeanOption(name: "블렌드", english: "Blend · Mixed varieties · 아라비카 블렌드", emoji: "", hex: "#8A7565"),
-            BeanOption(name: "미상", english: "Unknown · Various · 아라비카 미상", emoji: "", hex: "#8A7565"),
+            BeanOption(name: "블렌드", english: "Blend · Blended · Mixed · Mixed varieties · 아라비카 블렌드 · 혼합", emoji: "", hex: "#8A7565"),
+            BeanOption(name: "미상", english: "Unknown · Various · N/A · 아라비카 미상 · 알 수 없음 · 불명", emoji: "", hex: "#8A7565"),
         ]),
     ]
 
@@ -190,7 +190,7 @@ enum BeanOptions {
             BeanOption(name: "패치 드라이드", english: "Patio Dried", emoji: "", hex: "#D9873A"),
         ]),
         BeanOptionGroup(name: "허니·펄프드 내추럴", hex: "#D4A83C", options: [
-            BeanOption(name: "허니", english: "Honey Process · 하니", emoji: "", hex: "#D4A83C"),
+            BeanOption(name: "허니", english: "Honey · Honey Process · 허니 프로세스 · 하니", emoji: "", hex: "#D4A83C"),
             BeanOption(name: "펄프드 내추럴", english: "Pulped Natural", emoji: "", hex: "#D4A83C"),
             BeanOption(name: "화이트 허니", english: "White Honey", emoji: "", hex: "#D4A83C"),
             BeanOption(name: "옐로 허니", english: "Yellow Honey · Golden Honey · 골든 허니", emoji: "", hex: "#D4A83C"),
@@ -198,10 +198,10 @@ enum BeanOptions {
             BeanOption(name: "블랙 허니", english: "Black Honey", emoji: "", hex: "#D4A83C"),
         ]),
         BeanOptionGroup(name: "발효·실험적", hex: "#8E5AA8", options: [
-            BeanOption(name: "무산소 발효", english: "Anaerobic · Anaerobic Fermentation · 애너에어로빅", emoji: "", hex: "#8E5AA8"),
-            BeanOption(name: "무산소 워시드", english: "Anaerobic Washed", emoji: "", hex: "#8E5AA8"),
-            BeanOption(name: "무산소 내추럴", english: "Anaerobic Natural", emoji: "", hex: "#8E5AA8"),
-            BeanOption(name: "무산소 허니", english: "Anaerobic Honey", emoji: "", hex: "#8E5AA8"),
+            BeanOption(name: "무산소 발효", english: "Anaerobic · Anaerobic Fermentation · 무산소 · 애너에어로빅 · 아나에어로빅 · 언에어로빅", emoji: "", hex: "#8E5AA8"),
+            BeanOption(name: "무산소 워시드", english: "Anaerobic Washed · 애너에어로빅 워시드 · 무산소 발효 워시드", emoji: "", hex: "#8E5AA8"),
+            BeanOption(name: "무산소 내추럴", english: "Anaerobic Natural · 애너에어로빅 내추럴 · 무산소 발효 내추럴", emoji: "", hex: "#8E5AA8"),
+            BeanOption(name: "무산소 허니", english: "Anaerobic Honey · 애너에어로빅 허니 · 무산소 발효 허니", emoji: "", hex: "#8E5AA8"),
             BeanOption(name: "카보닉 마세레이션", english: "Carbonic Maceration · CM · 탄산 침용", emoji: "", hex: "#8E5AA8"),
             BeanOption(name: "써멀 쇼크", english: "Thermal Shock · 열충격", emoji: "", hex: "#8E5AA8"),
             BeanOption(name: "이스트 접종", english: "Yeast Inoculated · 효모 접종", emoji: "", hex: "#8E5AA8"),
@@ -214,7 +214,7 @@ enum BeanOptions {
         ]),
         BeanOptionGroup(name: "기타", hex: "#7D8A8F", options: [
             BeanOption(name: "몬순드", english: "Monsooned · Monsoon Malabar · 몬순 말라바르", emoji: "", hex: "#7D8A8F"),
-            BeanOption(name: "디카페인", english: "Decaf · Decaffeinated", emoji: "", hex: "#7D8A8F"),
+            BeanOption(name: "디카페인", english: "Decaf · Decaffeinated · 디카프", emoji: "", hex: "#7D8A8F"),
             BeanOption(name: "디카페인 스위스 워터", english: "Swiss Water Decaf · SWP", emoji: "", hex: "#7D8A8F"),
             BeanOption(name: "디카페인 슈가케인(EA)", english: "Sugarcane Decaf · Ethyl Acetate · EA", emoji: "", hex: "#7D8A8F"),
             BeanOption(name: "디카페인 CO2", english: "CO2 Decaf · Supercritical CO2", emoji: "", hex: "#7D8A8F"),
@@ -227,13 +227,13 @@ enum BeanOptions {
     // MARK: 로스팅 포인트 (밝은 → 어두운 순, hex = 실제 원두색 근사)
     static let roastLevels: [BeanOptionGroup] = [
         BeanOptionGroup(name: "로스팅 포인트", hex: "#7F5A38", options: [
-            BeanOption(name: "라이트", english: "Light · 약배전 · 시나몬 · Agtron 75+", emoji: "", hex: "#C9A277"),
-            BeanOption(name: "라이트 미디엄", english: "Light Medium · 중약배전 · 뉴잉글랜드 · Agtron 65–75", emoji: "", hex: "#B38A5C"),
+            BeanOption(name: "라이트", english: "Light · Light Roast · 약배전 · 라이트 로스트 · 시나몬 · Cinnamon · Agtron 75+", emoji: "", hex: "#C9A277"),
+            BeanOption(name: "라이트 미디엄", english: "Light Medium · 뉴잉글랜드 · New England · Agtron 65–75", emoji: "", hex: "#B38A5C"),
             BeanOption(name: "미디엄 라이트", english: "Medium Light · 중약배전 · 시티 초입 · Agtron 60–65", emoji: "", hex: "#9C7247"),
-            BeanOption(name: "미디엄", english: "Medium · 중배전 · 시티 · Agtron 55–60", emoji: "", hex: "#7F5A38"),
-            BeanOption(name: "미디엄 다크", english: "Medium Dark · 중강배전 · 풀시티 · Agtron 45–55", emoji: "", hex: "#62432A"),
-            BeanOption(name: "다크", english: "Dark · 강배전 · 프렌치 · 비엔나 · Agtron 35–45", emoji: "", hex: "#452D1C"),
-            BeanOption(name: "베리 다크", english: "Very Dark · 강배전 · 이탈리안 · Agtron 35 이하", emoji: "", hex: "#2A1A10"),
+            BeanOption(name: "미디엄", english: "Medium · Medium Roast · 중배전 · 미디엄 로스트 · 시티 · City · Agtron 55–60", emoji: "", hex: "#7F5A38"),
+            BeanOption(name: "미디엄 다크", english: "Medium Dark · 중강배전 · 풀시티 · Full City · Agtron 45–55", emoji: "", hex: "#62432A"),
+            BeanOption(name: "다크", english: "Dark · Dark Roast · 강배전 · 다크 로스트 · 프렌치 · French · 비엔나 · Vienna · Agtron 35–45", emoji: "", hex: "#452D1C"),
+            BeanOption(name: "베리 다크", english: "Very Dark · 이탈리안 · Italian · Agtron 35 이하", emoji: "", hex: "#2A1A10"),
         ]),
     ]
 
@@ -241,5 +241,16 @@ enum BeanOptions {
     static func option(named name: String, in groups: [BeanOptionGroup]) -> BeanOption? {
         for g in groups { if let o = g.options.first(where: { $0.name == name }) { return o } }
         return nil
+    }
+
+    /// 원문 → 목록의 표준 이름 (이름 정확 일치 → 이름·english 별칭 일치, 대소문자·공백·하이픈 무시 → nil).
+    /// 예: "Heirloom"→"헤어룸", "Washed"→"워시드", "미디엄라이트"→"미디엄 라이트", "약배전"→"라이트"
+    static func canonicalName(_ raw: String, in groups: [BeanOptionGroup]) -> String? {
+        if let o = option(named: raw, in: groups) { return o.name }
+        let key = matchKey(raw)
+        guard !key.isEmpty else { return nil }
+        return groups.lazy.flatMap(\.options).first { o in
+            matchKey(o.name) == key || o.english.components(separatedBy: " · ").contains { matchKey($0) == key }
+        }?.name
     }
 }

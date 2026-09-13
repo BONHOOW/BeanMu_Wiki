@@ -118,7 +118,7 @@ struct ImportTests {
     @Test func applyCreatesBeanAndBrew() throws {
         let container = try makeContainer(); let context = container.mainContext
         let bean = try BeanImport.parse(json).apply(to: context, existing: [])
-        #expect(bean.roaster == "Fritz" && bean.roastLevel == "약배전" && bean.cupNotes == ["자몽", "흑설탕"])
+        #expect(bean.roaster == "Fritz" && bean.roastLevel == "라이트" && bean.cupNotes == ["자몽", "흑설탕"])   // 약배전 → 라이트
         #expect(bean.pageURL?.absoluteString == "https://fritz.co.kr/kenya")
         let brew = try #require(bean.brews.first)
         #expect(brew.waterTempC == 93 && brew.ratioText == "1:16" && brew.rating == 0 && brew.isFavorite)
@@ -150,6 +150,26 @@ struct ImportTests {
         #expect(old.isFavorite == false)
         #expect(existing.brews.filter(\.isFavorite).count == 1)
         #expect(try context.fetchCount(FetchDescriptor<Bean>()) == 1)
+    }
+
+    /// 로스터 표기(영문·약배전·플로럴)는 목록 표준 이름으로, 같은 이름으로 합쳐지는 컵노트는 하나만 남긴다
+    @Test func applyNormalizesRoasterWording() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let json = """
+        {"bean": {"name": "N", "country": "Ethiopia", "variety": "Heirloom", "process": "Washed", "roastLevel": "약배전",
+                  "cupNotes": ["플로럴", "레몬캔디", "유자", "라벤더", "복숭아", "Floral"]}}
+        """
+        let bean = try BeanImport.parse(json).apply(to: context, existing: [])
+        #expect(bean.country == "에티오피아" && bean.variety == "헤어룸" && bean.process == "워시드" && bean.roastLevel == "라이트")
+        #expect(bean.cupNotes == ["꽃향", "레몬", "유자", "라벤더", "복숭아"])
+    }
+
+    /// 목록에 없는 값은 원문 그대로 남긴다 (회색 칩으로 표시)
+    @Test func applyKeepsUnknownValues() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let json = #"{"bean": {"name": "U", "variety": "루비", "cupNotes": ["빈카이브맛"]}}"#
+        let bean = try BeanImport.parse(json).apply(to: context, existing: [])
+        #expect(bean.variety == "루비" && bean.cupNotes == ["빈카이브맛"])
     }
 }
 

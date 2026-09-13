@@ -193,17 +193,23 @@ struct BeanImport: Decodable {
     private func makeBean(in context: ModelContext) -> Bean {
         let b = Bean(name: bean.name)
         b.roaster = bean.roaster ?? ""
-        b.country = bean.country ?? ""
+        b.country = canonical(bean.country, in: BeanOptions.countries)
         b.region = bean.region ?? ""
         b.farm = bean.farm ?? ""
         b.altitude = bean.altitude ?? ""
-        b.variety = bean.variety ?? ""
-        b.process = bean.process ?? ""
-        b.roastLevel = bean.roastLevel ?? ""
+        b.variety = canonical(bean.variety, in: BeanOptions.varieties)
+        b.process = canonical(bean.process, in: BeanOptions.processes)
+        b.roastLevel = canonical(bean.roastLevel, in: BeanOptions.roastLevels)
         b.url = bean.url ?? ""
-        b.cupNotes = bean.cupNotes ?? []
+        var seen = Set<String>()
+        b.cupNotes = (bean.cupNotes ?? []).map { FlavorWheel.canonicalName($0) ?? $0 }.filter { seen.insert($0).inserted }
         b.memo = bean.memo ?? ""
         context.insert(b)
         return b
+    }
+
+    /// 로스터 표기("Washed", "약배전")를 목록 표준 이름으로. 목록에 없으면 원문 유지.
+    private func canonical(_ raw: String?, in groups: [BeanOptionGroup]) -> String {
+        raw.map { BeanOptions.canonicalName($0, in: groups) ?? $0 } ?? ""
     }
 }

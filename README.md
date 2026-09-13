@@ -7,9 +7,10 @@
 홈카페에서 원두를 바꿀 때마다 같은 질문을 반복하게 됩니다. 이 원두는 어디 농장 것이었지, 지난번에 몇 도로 몇 그램 내렸더니 괜찮았지, 컵노트에 뭐라고 적혀 있었지. BeanMuWiki는 그 답을 원두별 문서 한 장에 모읍니다.
 
 - **원두 문서** — 로스터리, 원산지, 산지/재배지, 농장, 고도, 품종, 가공 방식, 로스팅 포인트, 판매 페이지, 패키지 사진, 메모. 원산지(43개국, 국기), 품종(61종, 계통별), 가공 방식(37종), 로스팅 포인트(7단계, 원두색)는 카테고리 피커에서 고르고, 목록에 없으면 직접 입력해 추가합니다.
-- **컵노트** — SCA 커피 플레이버 휠 기반 97개 향미를 9개 카테고리(과일, 신맛/발효, 녹색/채소, 기타, 구운, 향신료, 견과/코코아, 단맛, 꽃)와 색으로 고릅니다. 목록에서는 색 점으로 보여 원두를 한눈에 구분할 수 있습니다.
+- **컵노트** — SCA 커피 플레이버 휠 97개에 한국 로스터리 통용 노트(유자, 청포도, 리치, 라벤더, 밀크초콜릿 …) 32개를 더한 129개 향미를 9개 카테고리(과일, 신맛/발효, 녹색/채소, 기타, 구운, 향신료, 견과/코코아, 단맛, 꽃)와 색으로 고릅니다. 목록에서는 색 점으로 보여 원두를 한눈에 구분할 수 있습니다.
 - **추출 기록** — 추출 중 바뀌지 않는 조건(원두 g, 물 온도, 분쇄도)과 **푸어 단계 슬롯**(몇 초에 누적 몇 g을 어떤 방식으로)을 나눠 적습니다. 단계를 추가하면 물 총량과 비율이 따라 계산됩니다. 평점과 노트를 남기고, 잘 나온 기록을 ★ 기준 레시피로 두면 다음 기록이 그 값으로 미리 채워집니다.
-- **ChatGPT 연동 (앱 안에 AI 없음)** — 함께 들어 있는 프롬프트(`ChatGPT_Prompt.md`)에 원두를 알려주면 ChatGPT가 산지·품종·가공·컵노트를 조사하고 V60 레시피를 설계한 뒤 마지막에 JSON을 출력합니다. 그 JSON을 복사해 앱의 **가져오기** 버튼을 누르면 원두 문서와 기준 레시피가 한 번에 만들어집니다. 맛 피드백을 주고 받은 보정 레시피도 같은 방법으로 붙여넣으면 기존 원두에 기록만 추가됩니다.
+- **레시피 탭과 추출 카드** — 원두마다 ★ 기준 레시피가 카드로 모입니다. 카드를 열면 조건 한 줄과 푸어 단계가 한 화면에 큰 글씨로 나오고, **타이머 시작**을 누르면 경과 시간에 맞춰 지금 부어야 할 누적 g과 기법, 다음 푸어까지 남은 초가 안내됩니다(단계 전환 햅틱, 추출 중 화면 켜짐 유지). **추출 끝**을 누르면 실제 시간이 들어간 새 기록이 만들어져 별점만 매기면 됩니다.
+- **ChatGPT 연동 (앱 안에 AI 없음)** — 함께 들어 있는 프롬프트(`ChatGPT_Prompt.md`)에 원두를 알려주면 ChatGPT가 산지·품종·가공·컵노트를 조사하고 V60 레시피를 설계한 뒤 마지막에 JSON을 출력합니다. 그 JSON을 복사해 앱의 **가져오기** 버튼을 누르면 원두 문서와 기준 레시피가 한 번에 만들어집니다. 로스터리 표기(Heirloom, Washed, 플로럴, 레몬캔디 …)는 가져올 때 앱 목록의 표준 이름으로 자동 정규화됩니다. 맛 피드백을 주고 받은 보정 레시피도 같은 방법으로 붙여넣으면 기존 원두에 기록만 추가됩니다.
 
 모든 데이터는 기기 안(SwiftData)에만 저장됩니다. 계정도 서버도 없습니다.
 
@@ -19,9 +20,11 @@
 |---|---|---|---|
 | ![목록](docs/screenshots/01-list.png) | ![상세](docs/screenshots/02-detail.png) | ![기록](docs/screenshots/03-brew-steps.png) | ![피커](docs/screenshots/04-flavor-picker.png) |
 
-| 원두 편집 (배지 피커) | 원산지 피커 (국기) | 앱 아이콘 후보 |
-|---|---|---|
-| ![편집](docs/screenshots/05-bean-form.png) | ![국가](docs/screenshots/06-country-picker.png) | ![아이콘](docs/screenshots/icon-candidates.png) |
+| 레시피 탭 | 추출 카드 (타이머 실행 중) | 원두 편집 (배지 피커) | 원산지 피커 (국기) |
+|---|---|---|---|
+| ![레시피](docs/screenshots/07-recipes.png) | ![추출 카드](docs/screenshots/08-brew-card.png) | ![편집](docs/screenshots/05-bean-form.png) | ![국가](docs/screenshots/06-country-picker.png) |
+
+앱 아이콘 후보 비교: `docs/screenshots/icon-candidates.png`
 
 ## 요구 사항
 
@@ -46,7 +49,7 @@ xcodebuild test -project BeanMuWiki.xcodeproj -scheme BeanMuWiki \
 ```
 
 - `BeanMuWikiTests/` — Swift Testing 단위 테스트 (비율·별점·기준 레시피·URL 보정·사진 축소·푸어 단계 파싱·JSON 가져오기·플레이버 휠·원산지/품종/가공/로스팅 데이터)
-- `BeanMuWikiUITests/` — XCTest 유저 저니 (원두 추가 → 플레이버 선택 → 기록 추가 → 저장, 클립보드 JSON 가져오기)
+- `BeanMuWikiUITests/` — XCTest 유저 저니 (원두 추가 → 피커 선택 → 기록 추가 → 저장, 클립보드 JSON 가져오기, 레시피 탭 → 타이머 → 추출 끝 → 기록 저장)
 
 ## ChatGPT로 원두와 레시피 넣기
 
@@ -61,13 +64,15 @@ JSON 스키마는 프롬프트의 📦 섹션이 기준이고, 파서는 `BeanMu
 ```
 BeanMuWiki/
   Models.swift          Bean, Brew, PourStep 모델과 BeanImport(JSON 파서)
-  FlavorWheel.swift     SCA 플레이버 휠 데이터 (9카테고리 97향미, 한글·영문·색상)
-  BeanOptions.swift     원산지·품종·가공·로스팅 목록 (148개, WCR 품종 카탈로그 기준)
+  FlavorWheel.swift     플레이버 휠 데이터 (9카테고리 129향미, 별칭·표준 이름 매핑)
+  BeanOptions.swift     원산지·품종·가공·로스팅 목록 (148개, 별칭·표준 이름 매핑)
   FlavorViews.swift     범용 카테고리 피커 시트, 폼 행, 배지, 플레이버 칩·색 점
   BeanListView.swift    원두 목록, 가져오기
   BeanDetailView.swift  원두 문서, 추출 기록 목록
   BeanFormView.swift    원두 생성/편집 (사진, URL, 플레이버)
   BrewFormView.swift    추출 기록 생성/편집 (조건 + 푸어 단계 + 평가)
+  RecipesView.swift     레시피 탭 (원두별 ★ 기준 레시피 카드)
+  BrewCardView.swift    추출 카드 + 단계 안내 타이머
 BeanMuWikiTests/        단위 테스트
 BeanMuWikiUITests/      UI 테스트
 ChatGPT_Prompt.md       레시피 설계 프롬프트 + Import JSON 스키마
@@ -76,7 +81,7 @@ docs/                   로드맵(ROADMAP.md), 디자인 방향(DESIGN_DIRECTION
 
 ## 로드맵
 
-시장조사(`docs/ROADMAP.md`) 기준 다음 순서로 붙일 예정입니다: 로스팅 날짜와 신선도 배지 → 맛 5축 레이더 → 로스터리·산지별 색인 페이지 → 구매 정보 → 추출 스톱워치 → 패키지 사진 텍스트 인식 → JSON 내보내기와 iCloud 동기화.
+시장조사(`docs/ROADMAP.md`) 기준 다음 순서로 붙일 예정입니다: 로스팅 날짜와 신선도 배지 → 맛 5축 레이더 → 로스터리·산지별 색인 페이지 → 구매 정보 → 패키지 사진 텍스트 인식 → JSON 내보내기와 iCloud 동기화.
 
 ## 라이선스
 
