@@ -26,13 +26,13 @@ struct BeanDetailView: View {
             if hasOrigin {
                 Section("원산지") {
                     info("로스터리", bean.roaster)
-                    info("원산지", bean.country)
+                    info("원산지", bean.country, in: BeanOptions.countries)
                     info("산지 / 재배지", bean.region)
                     info("농장", bean.farm)
                     info("고도", bean.altitude)
-                    info("품종", bean.variety)
-                    info("가공", bean.process)
-                    info("로스팅", bean.roastLevel)
+                    info("품종", bean.variety, in: BeanOptions.varieties)
+                    info("가공", bean.process, in: BeanOptions.processes)
+                    info("로스팅", bean.roastLevel, in: BeanOptions.roastLevels, ownColor: true)
                     if let url = bean.pageURL {
                         Link(destination: url) { Label("판매 페이지 열기", systemImage: "safari") }
                     }
@@ -63,9 +63,17 @@ struct BeanDetailView: View {
         .sheet(item: $editingBrew) { BrewFormView(brew: $0) }
     }
 
+    /// groups를 주면 국기 또는 색 점 배지를 값 앞에 붙인다 (OptionBadge).
     @ViewBuilder
-    private func info(_ label: String, _ value: String) -> some View {
-        if !value.isEmpty { LabeledContent(label, value: value) }
+    private func info(_ label: String, _ value: String, in groups: [BeanOptionGroup] = [], ownColor: Bool = false) -> some View {
+        if !value.isEmpty {
+            LabeledContent(label) {
+                HStack(spacing: 6) {
+                    OptionBadge(value: value, groups: groups, ownColor: ownColor)
+                    Text(value)
+                }
+            }
+        }
     }
 }
 

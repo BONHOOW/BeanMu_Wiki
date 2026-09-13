@@ -73,7 +73,8 @@ private struct BeanRow: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(bean.name).font(.headline)
-                let origin = [bean.roaster, bean.country, bean.region].filter { !$0.isEmpty }
+                let flag = BeanOptions.option(named: bean.country, in: BeanOptions.countries)?.emoji ?? ""
+                let origin = [bean.roaster, flag.isEmpty ? bean.country : "\(flag) \(bean.country)", bean.region].filter { !$0.isEmpty }
                 if !origin.isEmpty {
                     Text(origin.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary)
                 }
@@ -101,7 +102,7 @@ private extension BeanListView {
         bean.altitude = "1,900~2,100m"
         bean.variety = "헤어룸"
         bean.process = "워시드"
-        bean.roastLevel = "약배전"
+        bean.roastLevel = "라이트"
         bean.url = "fritz.co.kr"
         bean.cupNotes = ["자스민", "레몬", "홍차", "꿀"]
         context.insert(bean)

@@ -1,28 +1,34 @@
 import SwiftUI
 
-/// 빈카이브식 플레이버 선택 시트. selection은 선택한 순서를 유지하고, 휠에 없는 직접 입력 노트도 허용한다.
-struct FlavorPickerSheet: View {
+/// 빈카이브식 선택 시트. 검색 · 카테고리 탭 · "직접 추가". selection은 선택 순서를 유지하고 목록에 없는 값도 허용한다.
+/// 단일 선택(singleSelection)은 길이 0~1 배열 Binding으로 감싸고, 탭하면 바로 닫힌다.
+struct OptionPickerSheet: View {
+    let title: String
+    let groups: [BeanOptionGroup]
     @Binding var selection: [String]
+    var singleSelection = false
+    var prompt = "검색 또는 직접 입력"
+    var searchIdentifier = "optionSearch"
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
-    @State private var category: String?   // nil = 전체
+    @State private var group: String?   // nil = 전체
 
     private var query: String { search.trimmingCharacters(in: .whitespaces) }
-    private var flavors: [Flavor] {
-        let base = FlavorWheel.categories.first { $0.name == category }?.flavors ?? FlavorWheel.all
+    private var options: [BeanOption] {
+        let base = groups.first { $0.name == group }?.options ?? groups.flatMap(\.options)
         guard !query.isEmpty else { return base }
         return base.filter { $0.name.localizedStandardContains(query) || $0.english.localizedStandardContains(query) }
     }
-    private var customs: [String] { selection.filter { FlavorWheel.flavor(named: $0) == nil } }
+    private var customs: [String] { selection.filter { BeanOptions.option(named: $0, in: groups) == nil } }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 HStack {
                     Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                    TextField("향과 맛을 검색해보세요", text: $search)
+                    TextField(prompt, text: $search)
                         .autocorrectionDisabled()
-                        .accessibilityIdentifier("flavorSearch")
+                        .accessibilityIdentifier(searchIdentifier)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(.fill.tertiary, in: .capsule)
@@ -31,28 +37,30 @@ struct FlavorPickerSheet: View {
                 ScrollView(.horizontal) {
                     HStack(spacing: 20) {
                         tab(nil, title: "전체")
-                        ForEach(FlavorWheel.categories) { tab($0.name, title: $0.name) }
+                        ForEach(groups) { tab($0.name, title: $0.name) }
                     }
                     .padding(.horizontal)
                 }
                 .scrollIndicators(.hidden)
 
                 List {
-                    ForEach(flavors) { row($0.name) }
-                    if !query.isEmpty, !flavors.contains(where: { $0.name == query }) {
+                    ForEach(options) { row($0) }
+                    if !query.isEmpty, !options.contains(where: { $0.name == query }) {
                         Button("\"\(query)\" 직접 추가", systemImage: "plus") {
-                            if !selection.contains(query) { selection.append(query) }
+                            if singleSelection || !selection.contains(query) { select(query) }
                             search = ""
                         }
                     }
-                    if category == nil, query.isEmpty, !customs.isEmpty {
-                        Section("직접 추가") { ForEach(customs, id: \.self) { row($0) } }
+                    if group == nil, query.isEmpty, !customs.isEmpty {
+                        Section("직접 추가") {
+                            ForEach(customs, id: \.self) { row(BeanOption(name: $0, english: "", emoji: "", hex: "")) }
+                        }
                     }
                 }
                 .listStyle(.plain)
             }
-            .navigationTitle("플레이버")
-            .navigationSubtitle(selection.isEmpty ? "" : "\(selection.count)개 선택")
+            .navigationTitle(title)
+            .navigationSubtitle(singleSelection || selection.isEmpty ? "" : "\(selection.count)개 선택")
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("완료") { dismiss() } }
@@ -61,31 +69,112 @@ struct FlavorPickerSheet: View {
     }
 
     private func tab(_ name: String?, title: String) -> some View {
-        Button(title) { category = name }
+        Button(title) { group = name }
             .buttonStyle(.plain)
-            .fontWeight(category == name ? .bold : .regular)
-            .foregroundStyle(category == name ? .primary : .secondary)
+            .fontWeight(group == name ? .bold : .regular)
+            .foregroundStyle(group == name ? .primary : .secondary)
             .padding(.vertical, 10)
-            .overlay(alignment: .bottom) { if category == name { Rectangle().frame(height: 2) } }
+            .overlay(alignment: .bottom) { if group == name { Rectangle().frame(height: 2) } }
     }
 
-    private func row(_ name: String) -> some View {
-        Button { toggle(name) } label: {
+    private func row(_ option: BeanOption) -> some View {
+        Button { select(option.name) } label: {
             HStack(spacing: 12) {
-                Circle().fill(FlavorWheel.color(for: name)).frame(width: 24, height: 24)
-                Text(name)
+                if option.emoji.isEmpty {
+                    Circle().fill(option.color).frame(width: 24, height: 24)
+                } else {
+                    Text(option.emoji).font(.title2).frame(width: 24)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(option.name)
+                    if !option.english.isEmpty { Text(option.english).font(.caption).foregroundStyle(.secondary) }
+                }
                 Spacer()
-                if selection.contains(name) {
+                if selection.contains(option.name) {
                     Image(systemName: "checkmark").fontWeight(.semibold).foregroundStyle(Color.accentColor)
                 }
             }
         }
         .tint(.primary)
-        .accessibilityLabel(name)
+        .accessibilityLabel(option.name)
     }
 
-    private func toggle(_ name: String) {
+    private func select(_ name: String) {
+        if singleSelection { selection = [name]; dismiss(); return }
         if let i = selection.firstIndex(of: name) { selection.remove(at: i) } else { selection.append(name) }
+    }
+}
+
+/// 플레이버 다중 선택 (SCA 플레이버 휠).
+struct FlavorPickerSheet: View {
+    @Binding var selection: [String]
+
+    var body: some View {
+        OptionPickerSheet(title: "플레이버", groups: BeanOptions.flavors, selection: $selection,
+                          prompt: "향과 맛을 검색해보세요", searchIdentifier: "flavorSearch")
+    }
+}
+
+extension BeanOptions {
+    /// FlavorWheel → 피커 그룹 (색 점 배지, 국기 없음)
+    static let flavors: [BeanOptionGroup] = FlavorWheel.categories.map { c in
+        BeanOptionGroup(name: c.name, hex: c.hex, options: c.flavors.map {
+            BeanOption(name: $0.name, english: $0.english, emoji: "", hex: $0.hex)
+        })
+    }
+}
+
+/// 폼 행: 현재 값(배지 + 이름) 또는 "선택" → 탭하면 단일 선택 시트. 빈 문자열 = 미선택.
+/// 접근성 식별자: "\(id)PickerButton", 시트 검색창 "\(id)Search".
+struct OptionPickerRow: View {
+    let title: String
+    @Binding var value: String
+    let groups: [BeanOptionGroup]
+    let id: String
+    var ownColor = false
+    @State private var picking = false
+
+    var body: some View {
+        Button { picking = true } label: {
+            LabeledContent(title) {
+                if value.isEmpty {
+                    Text("선택")
+                } else {
+                    HStack(spacing: 6) {
+                        OptionBadge(value: value, groups: groups, ownColor: ownColor)
+                        Text(value).foregroundStyle(.primary)
+                    }
+                }
+            }
+        }
+        .tint(.primary)
+        .accessibilityIdentifier("\(id)PickerButton")
+        .accessibilityLabel(title)
+        .accessibilityValue(value.isEmpty ? "선택" : value)
+        .sheet(isPresented: $picking) {
+            OptionPickerSheet(title: title, groups: groups,
+                              selection: Binding(get: { value.isEmpty ? [] : [value] }, set: { value = $0.last ?? "" }),
+                              singleSelection: true, searchIdentifier: "\(id)Search")
+        }
+    }
+}
+
+/// 표시용 배지: 국기 이모지가 있으면 이모지, 없으면 색 점. ownColor = 옵션 고유색(로스팅 원두색), 아니면 그룹색.
+/// 목록에 없는 값(직접 입력)은 아무것도 그리지 않는다.
+struct OptionBadge: View {
+    let value: String
+    let groups: [BeanOptionGroup]
+    var ownColor = false
+
+    var body: some View {
+        if let group = groups.first(where: { $0.options.contains { $0.name == value } }),
+           let option = group.options.first(where: { $0.name == value }) {
+            if option.emoji.isEmpty {
+                Circle().fill(ownColor ? option.color : group.color).frame(width: 10, height: 10)
+            } else {
+                Text(option.emoji)
+            }
+        }
     }
 }
 
@@ -151,4 +240,9 @@ struct FlowLayout: Layout {
 #Preview("Picker") {
     @Previewable @State var selection = ["레몬", "자스민", "패션후르츠"]
     FlavorPickerSheet(selection: $selection)
+}
+
+#Preview("Country") {
+    @Previewable @State var country = ["에티오피아"]
+    OptionPickerSheet(title: "원산지", groups: BeanOptions.countries, selection: $country, singleSelection: true)
 }

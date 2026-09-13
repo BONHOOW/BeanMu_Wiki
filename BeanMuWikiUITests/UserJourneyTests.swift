@@ -25,21 +25,35 @@ final class UserJourneyTests: XCTestCase {
         }
     }
 
-    /// 값이 이미 들어 있는 숫자 필드를 지우고 새로 입력 (typeText는 커서 뒤에 덧붙이므로).
-    /// 좁은 우측 정렬 필드는 가운데를 탭하면 커서가 텍스트 앞에 놓여 백스페이스가 먹지 않는다 → 오른쪽 끝을 탭
+    /// 값이 이미 들어 있는 숫자 필드를 새 값으로 교체 (typeText는 커서 뒤에 덧붙이므로).
+    /// 포맷 필드는 값이 바뀔 때마다 다시 렌더되어 백스페이스가 씹힌다 → 숫자(한 단어)를 더블탭으로 통째로 선택한 뒤 덮어쓴다.
+    /// 좁은 우측 정렬 필드는 가운데가 빈 공간이므로 오른쪽 끝의 텍스트 위를 더블탭.
     private func replaceText(in field: XCUIElement, with text: String) {
         field.tap()   // 화면 밖이면 스크롤해서 포커스 (좌표 탭은 스크롤하지 않아 키보드를 누를 수 있다)
-        field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
-        let current = (field.value as? String) ?? ""
-        // 값이 바뀔 때마다 필드가 다시 포맷·렌더되어 빠른 연속 입력이 씹힐 수 있다 → 한 키씩 (typeText는 호출마다 앱이 idle할 때까지 기다린다)
-        for key in Array(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count) + text.map(String.init) { field.typeText(key) }
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).doubleTap()
+        for key in text { field.typeText(String(key)) }   // 한 키씩 (typeText는 호출마다 앱이 idle할 때까지 기다린다)
     }
 
-    /// List가 아직 만들지 않은 아래쪽 행은 존재하지 않는다 → 보일 때까지 스크롤
+    /// List가 아직 만들지 않은 화면 밖 행은 존재하지 않는다 → 보일 때까지 아래로, 그래도 없으면 위로 스크롤
     private func scrollTo(_ element: XCUIElement) {
         for _ in 0..<3 where !element.exists { app.swipeUp() }
+        for _ in 0..<6 where !element.exists { app.swipeDown() }
         XCTAssertTrue(element.waitForExistence(timeout: 3))
     }
+
+    /// 단일 선택 피커: "\(id)PickerButton" 행을 열고 "\(id)Search"에 검색한 뒤 row를 탭 → 시트가 닫히고 행 값이 바뀐다
+    private func pick(_ id: String, search text: String? = nil, row: XCUIElement) {
+        let button = app.buttons["\(id)PickerButton"]
+        scrollTo(button); button.tap()
+        let search = app.textFields["\(id)Search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 3))
+        if let text { search.tap(); search.typeText(text) }
+        XCTAssertTrue(row.waitForExistence(timeout: 3))
+        row.tap()
+        XCTAssertTrue(search.waitForNonExistence(timeout: 3))
+    }
+
+    private func value(of id: String) -> String { (app.buttons[id].value as? String) ?? "" }
 
     /// 빈 상태 → 원두 추가(플레이버 시트) → 목록 → 상세 → 기록 추가(푸어 단계·물 총량 동기화·비율) → 상세에 기록 표시
     func testUserJourney() {
@@ -62,15 +76,22 @@ final class UserJourneyTests: XCTestCase {
         XCTAssertTrue(lemon.waitForExistence(timeout: 3))
         lemon.tap()
         app.buttons["완료"].tap()
+
+        pick("country", search: "케냐", row: app.buttons["케냐"])
+        XCTAssertTrue(value(of: "countryPickerButton").contains("케냐"))
+        pick("roast", row: app.buttons["라이트"])
+        XCTAssertTrue(value(of: "roastPickerButton").contains("라이트"))
         app.buttons["저장"].tap()
 
         let row = element(containing: "Kenya AA")
         XCTAssertTrue(row.waitForExistence(timeout: 3))
         XCTAssertTrue(element(containing: "레몬").exists)
+        XCTAssertTrue(element(containing: "🇰🇪").exists)   // 목록 행에 국기
         row.tap()
 
         let addBrew = app.buttons["기록 추가"]
         XCTAssertTrue(addBrew.waitForExistence(timeout: 3))
+        XCTAssertTrue(element(containing: "케냐").exists)   // 상세 원산지 행
         addBrew.tap()
         let dose = app.textFields["doseField"]
         XCTAssertTrue(dose.waitForExistence(timeout: 3))
@@ -92,6 +113,15 @@ final class UserJourneyTests: XCTestCase {
         XCTAssertTrue(element(containing: "2단계").exists)
     }
 
+    /// 목록에 없는 품종을 검색 → "직접 추가" 행으로 입력값 그대로 선택
+    func testCustomVarietyEntry() {
+        app.launch()
+        app.buttons["추가"].tap()
+        XCTAssertTrue(app.textFields["nameField"].waitForExistence(timeout: 3))
+        pick("variety", search: "루비", row: app.buttons.matching(NSPredicate(format: "label CONTAINS '직접 추가'")).firstMatch)
+        XCTAssertTrue(value(of: "varietyPickerButton").contains("루비"))
+    }
+
     /// ChatGPT JSON을 클립보드에 넣고 가져오기 버튼으로 가져오기 → 새 원두 상세로 이동 (steps 포함)
     func testImportFromClipboard() {
         UIPasteboard.general.string = """
@@ -107,6 +137,9 @@ final class UserJourneyTests: XCTestCase {
         XCTAssertTrue(paste.waitForExistence(timeout: 5))
         paste.tap()
         allowPasteIfAsked()
+        // 시뮬레이터에서 허용 알림이 15초쯤 뒤 저절로 닫히며 빈 문자열이 오면 앱이 "가져오기 실패"를 띄운다 → 닫고 한 번 더
+        let dismissError = app.alerts.buttons.firstMatch
+        if dismissError.waitForExistence(timeout: 2) { dismissError.tap(); paste.tap(); allowPasteIfAsked() }
 
         XCTAssertTrue(element(containing: "Ethiopia Yirgacheffe").waitForExistence(timeout: 5))
         XCTAssertTrue(element(containing: "Ethiopia").exists)

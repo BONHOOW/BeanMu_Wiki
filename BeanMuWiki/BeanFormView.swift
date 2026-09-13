@@ -22,7 +22,7 @@ struct BeanFormView: View {
                 Section("원두") {
                     TextField("원두명", text: $bean.name).accessibilityIdentifier("nameField")
                     TextField("로스터리", text: $bean.roaster).accessibilityIdentifier("roasterField")
-                    TextField("로스팅 포인트 (예: 약배전)", text: $bean.roastLevel)
+                    OptionPickerRow(title: "로스팅 포인트", value: $bean.roastLevel, groups: BeanOptions.roastLevels, id: "roast", ownColor: true)
                     TextField("판매 페이지 URL", text: $bean.url)
                         .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
@@ -39,12 +39,12 @@ struct BeanFormView: View {
                     }
                 }
                 Section("원산지") {
-                    TextField("원산지 (국가)", text: $bean.country)
+                    OptionPickerRow(title: "원산지 (국가)", value: $bean.country, groups: BeanOptions.countries, id: "country")
                     TextField("산지 / 재배지", text: $bean.region)
                     TextField("농장", text: $bean.farm)
                     TextField("고도 (예: 1,900~2,100m)", text: $bean.altitude)
-                    TextField("품종", text: $bean.variety)
-                    TextField("가공 방식", text: $bean.process)
+                    OptionPickerRow(title: "품종", value: $bean.variety, groups: BeanOptions.varieties, id: "variety")
+                    OptionPickerRow(title: "가공 방식", value: $bean.process, groups: BeanOptions.processes, id: "process")
                 }
                 Section("컵노트") {
                     if bean.cupNotes.isEmpty {
