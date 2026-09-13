@@ -1,17 +1,34 @@
 import SwiftUI
 import SwiftData
 
-/// 레시피 탭: 원두별 기준 레시피(★, 없으면 최근 기록) 카드 → 추출 카드
+/// 레시피 탭: 원두 × 서빙(HOT/ICED)별 기준 레시피(★, 없으면 그 서빙의 최근 기록) 카드 → 추출 카드
 struct RecipesView: View {
     @Query(sort: \Bean.createdAt, order: .reverse) private var beans: [Bean]
+    @State private var filter: Bool?   // nil = 전체, false = HOT, true = ICED
+
+    private var servings: [Bool] { filter.map { [$0] } ?? [false, true] }
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(beans) { bean in
-                    if let brew = bean.favoriteBrew {
-                        NavigationLink { BrewCardView(brew: brew) } label: { RecipeCard(bean: bean, brew: brew) }
-                            .listRowSeparator(.hidden)
+                Section {
+                    Picker("서빙 필터", selection: $filter) {
+                        Text("전체").tag(Bool?.none)
+                        Text("HOT").tag(Bool?.some(false))
+                        Text("ICED").tag(Bool?.some(true))
+                    }
+                    .pickerStyle(.segmented).labelsHidden()
+                    .accessibilityIdentifier("recipeFilter")
+                    .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                }
+                Section {
+                    ForEach(beans) { bean in
+                        ForEach(servings, id: \.self) { iced in
+                            if let brew = bean.favoriteBrew(iced: iced) {
+                                NavigationLink { BrewCardView(brew: brew) } label: { RecipeCard(bean: bean, brew: brew) }
+                                    .listRowSeparator(.hidden)
+                            }
+                        }
                     }
                 }
             }
@@ -34,6 +51,7 @@ private struct RecipeCard: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text(bean.name).font(.headline)
+                ServingChip(brew: brew)
                 Spacer()
                 Text(bean.countryText).font(.subheadline).foregroundStyle(.secondary)
             }

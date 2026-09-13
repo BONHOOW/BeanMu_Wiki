@@ -36,6 +36,12 @@ struct BrewFormView: View {
         NavigationStack {
             Form {
                 Section("추출 조건") {
+                    Picker("서빙", selection: $brew.isIced) {
+                        Text("HOT").tag(false)
+                        Text("ICED").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("servingPicker")
                     DatePicker("날짜", selection: $brew.date)
                     Picker("추출 방식", selection: $brew.method) {
                         ForEach(brewMethods.contains(brew.method) ? brewMethods : brewMethods + [brew.method], id: \.self) { Text($0) }
@@ -44,6 +50,13 @@ struct BrewFormView: View {
                         TextField("15", value: $brew.doseGrams, format: .number.grouping(.never))
                             .accessibilityIdentifier("doseField")
                             .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                    }
+                    if brew.isIced {
+                        LabeledContent("얼음 (g)") {
+                            TextField("120", value: $brew.iceGrams, format: .number.grouping(.never))
+                                .accessibilityIdentifier("iceField")
+                                .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        }
                     }
                     LabeledContent("물 온도 (℃)") {
                         TextField("92", value: $brew.waterTempC, format: .number.grouping(.never))
@@ -82,7 +95,11 @@ struct BrewFormView: View {
                             .accessibilityIdentifier("waterField")
                             .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
                     }
-                    if let ratio = brew.ratioText {
+                    if brew.isIced {
+                        if let ratio = brew.ratioText { LabeledContent("브루 비율", value: ratio) }
+                        if let final = brew.finalRatioText { LabeledContent("최종 비율", value: final) }
+                        if let water = brew.waterGrams { LabeledContent("최종 음료", value: (water + (brew.iceGrams ?? 0)).gramsText) }
+                    } else if let ratio = brew.ratioText {
                         LabeledContent("비율", value: ratio)
                     }
                     LabeledContent("추출 시간") {
@@ -104,6 +121,13 @@ struct BrewFormView: View {
                     Toggle("기준 레시피", isOn: $brew.isFavorite)
                     TextField("테이스팅 노트 / 레시피 메모", text: $brew.notes, axis: .vertical).lineLimit(4...)
                 }
+            }
+            .onChange(of: brew.isIced) { _, iced in
+                // 새 기록만: 서빙을 바꾸면 그 서빙의 기준 레시피로 다시 채운다. 그 서빙의 첫 기록이면 ★
+                guard let bean else { return }
+                let template = bean.favoriteBrew(iced: iced)
+                if let template { brew.copyRecipe(from: template) }
+                brew.isFavorite = template == nil
             }
             .onChange(of: brew.waterGrams) { waterTyped = brew.waterGrams != brew.steps.last?.grams }
             .onChange(of: brew.steps) { _, new in
@@ -140,10 +164,12 @@ struct BrewFormView: View {
     }
 
     private func save() {
+        if !brew.isIced { brew.iceGrams = nil }
         if let bean {
             context.insert(brew)
             brew.bean = bean
         }
+        if brew.isFavorite { brew.bean?.setFavorite(brew) }   // 같은 서빙의 다른 ★만 해제
         dismiss()
     }
 }

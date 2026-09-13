@@ -45,19 +45,22 @@ struct BeanDetailView: View {
                 Section("메모") { Text(bean.memo) }
             }
             Section("추출 기록") {
-                if let fav = bean.favoriteBrew {
-                    NavigationLink { BrewCardView(brew: fav) } label: {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("추출 카드 열기")
-                                Text((fav.isFavorite ? "★ 기준 레시피" : "최근 기록") + " · " + fav.conditionLine)
-                                    .font(.caption).foregroundStyle(.secondary).monospacedDigit().lineLimit(1)
+                // 서빙(HOT/ICED)별 추출 카드 열기
+                ForEach([false, true], id: \.self) { iced in
+                    if let fav = bean.favoriteBrew(iced: iced) {
+                        NavigationLink { BrewCardView(brew: fav) } label: {
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(fav.isFavorite ? "★ \(fav.servingLabel) 기준 레시피" : "\(fav.servingLabel) 최근 기록")
+                                    Text(fav.conditionLine)
+                                        .font(.caption).foregroundStyle(.secondary).monospacedDigit().lineLimit(1)
+                                }
+                            } icon: {
+                                Image(systemName: "timer")
                             }
-                        } icon: {
-                            Image(systemName: "timer")
                         }
+                        .accessibilityIdentifier(iced ? "openBrewCardIced" : "openBrewCard")
                     }
-                    .accessibilityIdentifier("openBrewCard")
                 }
                 Button("기록 추가", systemImage: "plus") { addingBrew = true }
                 ForEach(brews) { brew in
@@ -98,6 +101,7 @@ private struct BrewRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(brew.method).font(.headline)
+                if brew.isIced { ServingChip(brew: brew) }
                 if brew.isFavorite {
                     Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow)
                 }

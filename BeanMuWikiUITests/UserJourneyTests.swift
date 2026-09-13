@@ -60,6 +60,18 @@ final class UserJourneyTests: XCTestCase {
         app.tabBars.buttons[name].exists ? app.tabBars.buttons[name] : app.buttons[name]
     }
 
+    /// 세그먼트 피커의 "HOT"/"ICED" 세그먼트 (버튼으로 노출된다). 화면에 세그먼트 피커는 하나뿐이다
+    private func segment(_ label: String) -> XCUIElement {
+        let inControl = app.segmentedControls.buttons[label]
+        return inControl.exists ? inControl : app.buttons[label]
+    }
+
+    /// 레시피 카드 / 기록 행처럼 라벨에 서빙(HOT/ICED)과 다른 텍스트가 함께 합쳐진 요소들
+    private func elements(containing texts: String...) -> XCUIElementQuery {
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: texts.map { NSPredicate(format: "label CONTAINS %@", $0) })
+        return app.descendants(matching: .any).matching(predicate)
+    }
+
     /// 빈 상태 → 원두 추가(플레이버 시트) → 목록 → 상세 → 기록 추가(푸어 단계·물 총량 동기화·비율) → 상세에 기록 표시
     func testUserJourney() {
         app.launch()
@@ -133,7 +145,9 @@ final class UserJourneyTests: XCTestCase {
         ```json
         {"bean":{"name":"Ethiopia Yirgacheffe","roaster":"Fritz","country":"Ethiopia","cupNotes":["자스민","레몬"]},
          "brews":[{"method":"V60","doseGrams":15,"waterGrams":250,"waterTempC":94,"grind":"E80 32 Step","time":"2:40","notes":"블룸 45g 45초","isFavorite":true,
-                   "steps":[{"at":"0:00","grams":45,"note":"블룸"},{"at":"0:45","grams":250}]}]}
+                   "steps":[{"at":"0:00","grams":45,"note":"블룸"},{"at":"0:45","grams":250}]},
+                  {"method":"V60","iced":true,"iceGrams":120,"doseGrams":20,"waterGrams":180,"waterTempC":94,"grind":"E80 32 Step","time":"2:15","isFavorite":true,
+                   "steps":[{"at":"0:00","grams":50},{"at":"1:20","grams":180}]}]}
         ```
         """
         app.launch()   // 클립보드를 채운 뒤 실행해야 한다
@@ -151,6 +165,7 @@ final class UserJourneyTests: XCTestCase {
         XCTAssertTrue(element(containing: "V60").exists)
         XCTAssertTrue(element(containing: "1:16.7").exists)
         XCTAssertTrue(element(containing: "2단계").exists)
+        XCTAssertTrue(element(containing: "ICED").exists)   // 두 번째 brew(iced:true) → ★ ICED 기준 레시피 행
     }
 
     /// 시드 데이터의 기준 레시피(4단계)를 템플릿으로 새 기록 → 첫 단계 스와이프 삭제 → 다음 단계가 0번으로 올라온다
@@ -242,5 +257,64 @@ final class UserJourneyTests: XCTestCase {
         scrollTo(open)
         open.tap()
         XCTAssertTrue(app.buttons["startTimer"].waitForExistence(timeout: 3))
+    }
+
+    /// 레시피 탭: 시드 원두는 HOT ★·ICED ★ 카드 두 장 → ICED 필터로 HOT 카드가 사라진다 → ICED 카드의 추출 카드에 얼음·최종 비율
+    func testRecipeTabHotIcedFilter() {
+        app.launchArguments.append("-seed")
+        app.launch()
+        tab("레시피").tap()
+        let hotCard = elements(containing: "에티오피아", "HOT").firstMatch
+        let icedCard = elements(containing: "에티오피아", "ICED").firstMatch
+        XCTAssertTrue(hotCard.waitForExistence(timeout: 5))
+        XCTAssertTrue(icedCard.exists)
+
+        segment("ICED").tap()
+        XCTAssertTrue(hotCard.waitForNonExistence(timeout: 3))
+        XCTAssertTrue(icedCard.exists)
+        icedCard.tap()
+
+        XCTAssertTrue(app.buttons["startTimer"].waitForExistence(timeout: 3))
+        XCTAssertTrue(element(containing: "얼음 120g").exists)
+        XCTAssertTrue(element(containing: "최종 1:15").exists)
+    }
+
+    /// 상세의 "★ ICED 기준 레시피" 행 → 추출 카드(얼음 표시) → 뒤로 → 기록 추가: HOT ★로 채워진 폼에서 ICED로 바꾸면
+    /// ICED ★로 다시 채워지고(원두 20g·얼음 120g) 최종 비율 1:15 → 저장 → 상세에 ICED 기록이 늘어난다
+    func testIcedRecordFromDetail() {
+        app.launchArguments.append("-seed")
+        app.launch()
+        let row = element(containing: "에티오피아 예가체프 G1")
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+        let openIced = app.descendants(matching: .any).matching(identifier: "openBrewCardIced").firstMatch
+        scrollTo(openIced)
+        openIced.tap()
+        XCTAssertTrue(app.buttons["startTimer"].waitForExistence(timeout: 3))
+        XCTAssertTrue(element(containing: "얼음 120g").exists)
+        app.navigationBars.buttons.firstMatch.tap()   // 뒤로
+
+        let addBrew = app.buttons["기록 추가"]
+        scrollTo(addBrew)
+        addBrew.tap()
+        let dose = app.textFields["doseField"]
+        XCTAssertTrue(dose.waitForExistence(timeout: 3))
+        XCTAssertEqual(dose.value as? String, "15")   // HOT ★ 프리필
+
+        segment("ICED").tap()
+        let ice = app.textFields["iceField"]
+        XCTAssertTrue(ice.waitForExistence(timeout: 3))
+        XCTAssertTrue((ice.value as? String ?? "").contains("120"))   // ICED ★로 다시 채움
+        XCTAssertTrue((dose.value as? String ?? "").contains("20"))
+        let finalRatio = element(containing: "최종 비율")
+        scrollTo(finalRatio)
+        XCTAssertTrue(elements(containing: "최종 비율", "1:15").firstMatch.exists)   // (180+120)/20
+        app.buttons["저장"].tap()
+        XCTAssertTrue(app.buttons["저장"].waitForNonExistence(timeout: 3))
+
+        // 행은 라벨이 합쳐진 버튼 하나("V60, ICED, ★★★★☆, …"; 셀에는 라벨이 없다). 맨 아래 기록까지 스크롤하면 추출 기록 섹션이 다 보인다
+        scrollTo(element(containing: "에어로프레스"))
+        // ★ ICED 기준 레시피 행 + 시드 ICED 기록 + 새 ICED 기록 → 최소 2개
+        XCTAssertGreaterThanOrEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS 'ICED'")).count, 2)
     }
 }

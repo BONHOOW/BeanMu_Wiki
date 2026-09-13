@@ -34,15 +34,43 @@ struct ModelTests {
         #expect(bean.favoriteBrew === old)
     }
 
+    /// ICED ★를 지정해도 HOT ★는 남는다. 같은 서빙의 ★만 교체된다
+    @Test func favoritePerServing() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let bean = Bean(name: "A"); context.insert(bean)
+        let hot = Brew(); context.insert(hot); hot.bean = bean
+        let hot2 = Brew(); context.insert(hot2); hot2.bean = bean
+        let iced = Brew(); iced.isIced = true; context.insert(iced); iced.bean = bean
+        bean.setFavorite(hot)
+        bean.setFavorite(iced)
+        #expect(hot.isFavorite && iced.isFavorite)
+        #expect(bean.favoriteBrew(iced: true) === iced && bean.favoriteBrew(iced: false) === hot && bean.favoriteBrew === hot)
+        bean.setFavorite(hot2)
+        #expect(!hot.isFavorite && hot2.isFavorite && iced.isFavorite)
+        #expect(bean.favoriteBrew === hot2)
+    }
+
     @Test func templateCopiesRecipeButNotEvaluation() {
         let src = Brew()
         src.method = "칼리타"; src.doseGrams = 20; src.waterGrams = 300; src.waterTempC = 90
         src.grind = "22"; src.time = "3:00"; src.rating = 5; src.notes = "x"; src.isFavorite = true
+        src.isIced = true; src.iceGrams = 100
         src.steps = [PourStep(atSeconds: 0, grams: 60, note: "블룸")]
         let copy = Brew(template: src)
         #expect(copy.method == "칼리타" && copy.doseGrams == 20 && copy.waterGrams == 300)
         #expect(copy.waterTempC == 90 && copy.grind == "22" && copy.time == "3:00" && copy.steps == src.steps)
+        #expect(copy.isIced && copy.iceGrams == 100)
         #expect(copy.rating == 3 && copy.notes == "" && copy.isFavorite == false)
+    }
+
+    @Test func finalRatioText() {
+        let brew = Brew()
+        brew.doseGrams = 20; brew.waterGrams = 180
+        #expect(brew.finalRatioText == "1:9" && brew.servingLabel == "HOT")   // HOT은 ratioText와 같다
+        brew.isIced = true
+        #expect(brew.finalRatioText == nil && brew.servingLabel == "ICED")     // 얼음 없는 ICED
+        brew.iceGrams = 120
+        #expect(brew.ratioText == "1:9" && brew.finalRatioText == "1:15")
     }
 
     @Test func pourStepTimeParsing() {
@@ -150,6 +178,35 @@ struct ImportTests {
         #expect(old.isFavorite == false)
         #expect(existing.brews.filter(\.isFavorite).count == 1)
         #expect(try context.fetchCount(FetchDescriptor<Bean>()) == 1)
+    }
+
+    /// 구 스키마 "V60 ICED"는 ICED + method "V60"으로, 새 스키마는 iced/iceGrams로. HOT의 iceGrams는 버린다
+    @Test func importIcedLegacyMethodAndNewFlag() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let json = """
+        {"bean": {"name": "I"}, "brews": [
+          {"method": "V60 ICED", "doseGrams": 20, "waterGrams": 180, "isFavorite": true},
+          {"method": "V60", "iced": true, "iceGrams": 120, "doseGrams": 20, "waterGrams": 180, "isFavorite": true},
+          {"method": "V60", "iced": false, "iceGrams": 120, "doseGrams": 15, "waterGrams": 240, "isFavorite": true} ]}
+        """
+        let bean = try BeanImport.parse(json).apply(to: context, existing: [])
+        let legacy = try #require(bean.brews.first { $0.isIced && $0.iceGrams == nil })
+        #expect(legacy.method == "V60" && legacy.finalRatioText == nil)
+        let iced = try #require(bean.brews.first { $0.iceGrams == 120 })
+        #expect(iced.isIced && iced.method == "V60" && iced.ratioText == "1:9" && iced.finalRatioText == "1:15")
+        let hot = try #require(bean.brews.first { !$0.isIced })
+        #expect(hot.iceGrams == nil && hot.finalRatioText == "1:16")
+        // ★는 서빙별로 하나: ICED 둘 중 나중 것, HOT 하나
+        #expect(!legacy.isFavorite && iced.isFavorite && hot.isFavorite)
+        #expect(bean.favoriteBrew(iced: true) === iced && bean.favoriteBrew === hot)
+    }
+
+    /// 구 스키마 "V60 ICED"와 새 스키마 iced:false가 함께 오면 method 표기가 이긴다 (ICED, iceGrams 유지)
+    @Test func importLegacyIcedMethodBeatsIcedFalse() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let json = #"{"bean": {"name": "L"}, "brews": [{"method": "V60 ICED", "iced": false, "iceGrams": 120, "doseGrams": 20, "waterGrams": 180}]}"#
+        let brew = try #require(BeanImport.parse(json).apply(to: context, existing: []).brews.first)
+        #expect(brew.isIced && brew.method == "V60" && brew.iceGrams == 120 && brew.finalRatioText == "1:15")
     }
 
     /// 로스터 표기(영문·약배전·플로럴)는 목록 표준 이름으로, 같은 이름으로 합쳐지는 컵노트는 하나만 남긴다

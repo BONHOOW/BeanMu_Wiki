@@ -36,5 +36,9 @@ struct CanonicalNameTests {
         #expect(brew.conditionLine == "15g · 240g · 92℃ · E80 33 · 1:16")
         brew.waterTempC = nil; brew.grind = ""
         #expect(brew.conditionLine == "15g · 240g · 1:16")
+        brew.isIced = true
+        #expect(brew.conditionLine == "15g · 240g · 1:16")   // 얼음 없는 ICED는 HOT과 같다
+        brew.iceGrams = 120
+        #expect(brew.conditionLine == "15g · 240g · 1:16 · 얼음 120g · 최종 1:24")
     }
 }

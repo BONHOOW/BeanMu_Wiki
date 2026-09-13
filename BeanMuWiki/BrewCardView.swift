@@ -79,6 +79,7 @@ struct BrewCardView: View {
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(.yellow.opacity(0.25), in: .capsule)
                 }
+                ServingChip(brew: brew)
             }
             let origin = [brew.method, brew.bean?.countryText ?? "", brew.bean?.roastLevel ?? ""].filter { !$0.isEmpty }
             Text(origin.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary)
@@ -205,11 +206,23 @@ struct BrewCardView: View {
     func reset() { startDate = nil; accumulated = 0; started = false }
 }
 
+/// HOT(주황) / ICED(시안) 캡슐 태그
+struct ServingChip: View {
+    let brew: Brew
+
+    var body: some View {
+        Text(brew.servingLabel).font(.caption.weight(.semibold))
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background((brew.isIced ? Color.cyan : .orange).opacity(0.25), in: .capsule)
+    }
+}
+
 extension Brew {
-    /// "15g · 240g · 92℃ · 코만단테 24클릭 · 1:16" (없는 항목은 생략)
+    /// "15g · 240g · 92℃ · 코만단테 24클릭 · 1:16" (없는 항목은 생략). ICED는 " · 얼음 120g · 최종 1:15"가 붙는다
     var conditionLine: String {
-        let parts: [String?] = [doseGrams?.gramsText, waterGrams?.gramsText, waterTempC.map { "\($0)℃" },
+        var parts: [String?] = [doseGrams?.gramsText, waterGrams?.gramsText, waterTempC.map { "\($0)℃" },
                                 grind.isEmpty ? nil : grind, ratioText]
+        if isIced { parts += [iceGrams.map { "얼음 " + $0.gramsText }, finalRatioText.map { "최종 " + $0 }] }
         return parts.compactMap { $0 }.joined(separator: " · ")
     }
 }
@@ -222,7 +235,7 @@ extension Bean {
     }
 }
 
-private extension Double {
+extension Double {
     /// 240 → "240g", 12.5 → "12.5g"
     var gramsText: String { formatted(.number.precision(.fractionLength(0...1))) + "g" }
 }

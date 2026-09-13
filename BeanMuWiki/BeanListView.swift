@@ -117,6 +117,14 @@ private extension BeanListView {
                      PourStep(atSeconds: 105, grams: 240, note: "센터 푸어")]
         context.insert(fav); fav.bean = bean
 
+        let iced = Brew()
+        iced.isIced = true; iced.doseGrams = 20; iced.waterGrams = 180; iced.iceGrams = 120; iced.waterTempC = 94
+        iced.grind = "코만단테 22클릭"; iced.time = "2:15"; iced.rating = 4; iced.isFavorite = true
+        iced.steps = [PourStep(atSeconds: 0, grams: 50, note: "블룸"),
+                      PourStep(atSeconds: 40, grams: 115, note: ""),
+                      PourStep(atSeconds: 80, grams: 180, note: "센터 푸어")]
+        context.insert(iced); iced.bean = bean
+
         let old = Brew()
         old.date = .now.addingTimeInterval(-86_400 * 2)
         old.method = "에어로프레스"; old.doseGrams = 14; old.waterGrams = 200; old.waterTempC = 88

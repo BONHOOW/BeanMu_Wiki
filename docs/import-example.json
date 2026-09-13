@@ -16,6 +16,8 @@
   "brews": [
     {
       "method": "V60",
+      "iced": false,
+      "iceGrams": null,
       "doseGrams": 15,
       "waterGrams": 240,
       "waterTempC": 93,
@@ -29,6 +31,23 @@
         { "at": "1:15", "grams": 190, "note": "동전 크기 나선형, 수위 유지" },
         { "at": "1:45", "grams": 240, "note": "센터 푸어" },
         { "at": "2:40", "grams": 240, "note": "드리퍼 제거" }
+      ]
+    },
+    {
+      "method": "V60",
+      "iced": true,
+      "iceGrams": 120,
+      "doseGrams": 20,
+      "waterGrams": 180,
+      "waterTempC": 94,
+      "grind": "홀츠클로츠 E80 32 Step (약 720 μm)",
+      "time": "2:15",
+      "notes": "⏱️ 목표 2:15 · 서버에 얼음 120g 먼저 (최종 300g, 1:15)\n[준비] 필터 린싱, 서버 예열 후 린싱수 버리기, 서버에 얼음 120g\n0:00 블룸 50g — 스푼 2회 가볍게 스터링\n0:40 1차 115g 누적 — 굵은 물줄기 나선형\n1:20 2차 180g 누적 — 센터 푸어\n2:15 드리퍼 제거 후 스월링\n🔎 체크: 얼음이 다 녹은 뒤 농도 / 리치·열대과일 향 유지 여부",
+      "isFavorite": true,
+      "steps": [
+        { "at": "0:00", "grams": 50,  "note": "블룸 · 스푼 2회 가볍게 스터링" },
+        { "at": "0:40", "grams": 115, "note": "굵은 물줄기 나선형" },
+        { "at": "1:20", "grams": 180, "note": "센터 푸어" }
       ]
     }
   ]

@@ -21,9 +21,21 @@ final class Bean {
 
     init(name: String = "") { self.name = name }
 
-    /// 기준 레시피(★), 없으면 가장 최근 기록
+    /// HOT 기준 레시피(★) → 아무 서빙의 ★ → 가장 최근 기록
     var favoriteBrew: Brew? {
-        brews.first { $0.isFavorite } ?? brews.max { $0.date < $1.date }
+        brews.first { $0.isFavorite && !$0.isIced } ?? brews.first { $0.isFavorite } ?? brews.max { $0.date < $1.date }
+    }
+
+    /// 해당 서빙(HOT/ICED)의 기준 레시피(★), 없으면 그 서빙의 가장 최근 기록
+    func favoriteBrew(iced: Bool) -> Brew? {
+        let same = brews.filter { $0.isIced == iced }
+        return same.first { $0.isFavorite } ?? same.max { $0.date < $1.date }
+    }
+
+    /// brew를 ★로. 같은 서빙의 다른 기록만 ★ 해제 (HOT과 ICED는 기준 레시피가 따로 있다)
+    func setFavorite(_ brew: Brew) {
+        for other in brews where other.isIced == brew.isIced && other !== brew { other.isFavorite = false }
+        brew.isFavorite = true
     }
 
     /// "fritz.co.kr/..."처럼 스킴이 없어도 열 수 있게 https를 붙인다.
@@ -66,13 +78,15 @@ struct PourStep: Codable, Hashable {
     var timeText: String { Self.timeString(atSeconds) }
 }
 
-/// 레시피 + 테이스팅 기록. isFavorite = 이 원두의 기준 레시피
+/// 레시피 + 테이스팅 기록. isFavorite = 이 원두의 서빙(HOT/ICED)별 기준 레시피
 @Model
 final class Brew {
     var date = Date.now
     var method = brewMethods[0]
+    var isIced = false        // ICED = 브루잉 워터를 줄이고 서버에 얼음
     var doseGrams: Double?
-    var waterGrams: Double?   // 총량. steps가 있으면 마지막 단계의 grams와 같다
+    var waterGrams: Double?   // 브루잉 워터 총량. steps가 있으면 마지막 단계의 grams와 같다
+    var iceGrams: Double?     // ICED만. 서버 얼음. 최종 음료 = waterGrams + iceGrams
     var waterTempC: Int?
     var grind = ""
     var time = ""         // 총 추출 시간 "2:45" 자유 텍스트
@@ -83,19 +97,31 @@ final class Brew {
     var bean: Bean?
 
     init(template: Brew? = nil) {
-        guard let template else { return }
-        method = template.method
-        doseGrams = template.doseGrams
-        waterGrams = template.waterGrams
-        waterTempC = template.waterTempC
-        grind = template.grind
-        time = template.time
-        steps = template.steps
+        if let template { copyRecipe(from: template) }
     }
 
-    var ratioText: String? {
-        guard let doseGrams, let waterGrams, doseGrams > 0 else { return nil }
-        return "1:" + (waterGrams / doseGrams).formatted(.number.precision(.fractionLength(0...1)))
+    /// 레시피 값만 복사 (날짜·평가·★·노트 제외)
+    func copyRecipe(from t: Brew) {
+        method = t.method; isIced = t.isIced
+        doseGrams = t.doseGrams; waterGrams = t.waterGrams; iceGrams = t.iceGrams; waterTempC = t.waterTempC
+        grind = t.grind; time = t.time; steps = t.steps
+    }
+
+    var servingLabel: String { isIced ? "ICED" : "HOT" }
+
+    /// 브루 비율 "1:16" (원두 : 브루잉 워터)
+    var ratioText: String? { ratioText(water: waterGrams) }
+
+    /// 최종 음료 비율. ICED는 (물+얼음)/원두, HOT은 ratioText와 같다. ICED인데 얼음이 없으면 nil
+    var finalRatioText: String? {
+        guard isIced else { return ratioText }
+        guard let waterGrams, let iceGrams else { return nil }
+        return ratioText(water: waterGrams + iceGrams)
+    }
+
+    private func ratioText(water: Double?) -> String? {
+        guard let doseGrams, let water, doseGrams > 0 else { return nil }
+        return "1:" + (water / doseGrams).formatted(.number.precision(.fractionLength(0...1)))
     }
 
     /// "5단계 · 0:00 45g → 2:45 240g"
@@ -145,9 +171,9 @@ struct BeanImport: Decodable {
     }
     struct BrewDTO: Decodable {
         var method, grind, time, notes: String?
-        var doseGrams, waterGrams, waterTempC: Double?
+        var doseGrams, waterGrams, iceGrams, waterTempC: Double?
         var rating: Int?
-        var isFavorite: Bool?
+        var isFavorite, iced: Bool?
         var steps: [StepDTO]?
     }
     var bean: BeanDTO
@@ -171,7 +197,11 @@ struct BeanImport: Decodable {
         let target = existing.first { $0.name == bean.name } ?? makeBean(in: context)
         for dto in brews ?? [] {
             let brew = Brew()
-            brew.method = dto.method ?? brewMethods[0]
+            // 구 스키마 호환: "V60 ICED" → ICED + "V60"
+            let method = (dto.method ?? "").replacingOccurrences(of: "ICED", with: "", options: .caseInsensitive).trimmingCharacters(in: .whitespaces)
+            brew.method = method.isEmpty ? brewMethods[0] : method
+            brew.isIced = dto.iced == true || dto.method?.localizedCaseInsensitiveContains("ICED") == true
+            brew.iceGrams = brew.isIced ? dto.iceGrams : nil
             brew.doseGrams = dto.doseGrams
             brew.steps = (dto.steps ?? []).compactMap { s in
                 s.grams.map { PourStep(atSeconds: PourStep.seconds(from: s.at ?? "") ?? 0, grams: $0, note: s.note ?? "") }
@@ -182,8 +212,7 @@ struct BeanImport: Decodable {
             brew.time = dto.time ?? ""
             brew.notes = dto.notes ?? ""
             brew.rating = dto.rating ?? 0
-            brew.isFavorite = dto.isFavorite ?? false
-            if brew.isFavorite { target.brews.forEach { $0.isFavorite = false } }
+            if dto.isFavorite ?? false { target.setFavorite(brew) }
             context.insert(brew)
             brew.bean = target
         }
