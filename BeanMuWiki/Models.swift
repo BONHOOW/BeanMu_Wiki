@@ -1,5 +1,7 @@
-import UIKit
+import Foundation
+import ImageIO
 import SwiftData
+import UniformTypeIdentifiers
 
 @Model
 final class Bean {
@@ -17,6 +19,9 @@ final class Bean {
     var cupNotes: [String] = []
     var memo = ""
     var createdAt = Date.now
+    var uuid = UUID()             // 기기 간 동일성 (동기화)
+    var updatedAt = Date.now      // 마지막 수정 시각. LWW 병합 기준 — 필드를 바꾸면 갱신할 것
+    var photoUpdatedAt: Date?     // 사진 변경 시각. 사진은 스냅샷과 별도로 동기화
     @Relationship(deleteRule: .cascade, inverse: \Brew.bean) var brews: [Brew] = []
 
     init(name: String = "") { self.name = name }
@@ -34,8 +39,10 @@ final class Bean {
 
     /// brew를 ★로. 같은 서빙의 다른 기록만 ★ 해제 (HOT과 ICED는 기준 레시피가 따로 있다)
     func setFavorite(_ brew: Brew) {
-        for other in brews where other.isIced == brew.isIced && other !== brew { other.isFavorite = false }
-        brew.isFavorite = true
+        for other in brews where other.isIced == brew.isIced && other !== brew && other.isFavorite {
+            other.isFavorite = false; other.updatedAt = .now
+        }
+        if !brew.isFavorite { brew.isFavorite = true; brew.updatedAt = .now }
     }
 
     /// "fritz.co.kr/..."처럼 스킴이 없어도 열 수 있게 https를 붙인다.
@@ -45,12 +52,17 @@ final class Bean {
         return URL(string: s.contains("://") ? s : "https://" + s)
     }
 
-    /// 사진을 긴 변 maxPixel 이하의 JPEG로 줄인다. 이미지가 아니면 nil.
-    static func compressedPhoto(_ data: Data, maxPixel: CGFloat = 1200) -> Data? {
-        guard let image = UIImage(data: data) else { return nil }
-        let scale = min(1, maxPixel / max(image.size.width, image.size.height))
-        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        return image.preparingThumbnail(of: size)?.jpegData(compressionQuality: 0.8)
+    /// 사진을 긴 변 maxPixel 이하의 JPEG로 줄인다(EXIF 방향 반영). 이미지가 아니면 nil.
+    static func compressedPhoto(_ data: Data, maxPixel: Int = 1200) -> Data? {
+        let options = [kCGImageSourceCreateThumbnailFromImageAlways: true,
+                       kCGImageSourceCreateThumbnailWithTransform: true,
+                       kCGImageSourceThumbnailMaxPixelSize: maxPixel] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else { return nil }
+        let out = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(out, UTType.jpeg.identifier as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(dest, thumb, [kCGImageDestinationLossyCompressionQuality: 0.8] as CFDictionary)
+        return CGImageDestinationFinalize(dest) ? out as Data : nil
     }
 }
 
@@ -95,7 +107,10 @@ final class Brew {
     var notes = ""
     var isFavorite = false
     var bean: Bean?
+    var uuid = UUID()             // 기기 간 동일성 (동기화)
+    var updatedAt = Date.now      // 마지막 수정 시각. LWW 병합 기준 — 필드를 바꾸면 갱신할 것
 
+    /// 레시피 값만 복사. uuid·updatedAt은 새 기록의 것 (새 identity)
     init(template: Brew? = nil) {
         if let template { copyRecipe(from: template) }
     }
@@ -136,6 +151,16 @@ final class Brew {
     var stars: String {
         String(repeating: "★", count: max(0, min(5, rating))) + String(repeating: "☆", count: max(0, 5 - rating))
     }
+}
+
+/// 삭제 기록. 다른 기기에서 같은 항목을 되살리지 않도록 uuid를 남긴다 (90일 후 정리)
+@Model
+final class Tombstone {
+    var uuid: UUID
+    var kind: String          // "bean" | "brew"
+    var deletedAt = Date.now
+
+    init(uuid: UUID, kind: String) { self.uuid = uuid; self.kind = kind }
 }
 
 let brewMethods = ["V60", "칼리타", "오리가미", "하리오 스위치", "에어로프레스", "프렌치프레스", "모카포트", "에스프레소", "콜드브루", "기타"]

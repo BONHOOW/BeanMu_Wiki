@@ -317,4 +317,39 @@ final class UserJourneyTests: XCTestCase {
         // ★ ICED 기준 레시피 행 + 시드 ICED 기록 + 새 ICED 기록 → 최소 2개
         XCTAssertGreaterThanOrEqual(app.buttons.matching(NSPredicate(format: "label CONTAINS 'ICED'")).count, 2)
     }
+
+    /// 설정 시트: "JSON 백업" 섹션에 내보내기·AirDrop 공유·가져오기 → 내보내기는 시스템 문서 피커(취소로 닫음) → 완료로 목록 복귀
+    func testSettingsBackupSheet() {
+        app.launchArguments.append("-seed")
+        app.launch()
+        let row = element(containing: "에티오피아 예가체프 G1")
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        app.buttons["settingsButton"].tap()
+
+        let export = app.buttons["exportBackup"]
+        XCTAssertTrue(export.waitForExistence(timeout: 3))
+        XCTAssertTrue(element(containing: "JSON 백업").exists)
+        XCTAssertTrue(app.buttons["importBackup"].exists)
+        XCTAssertTrue(element(containing: "AirDrop / 공유").waitForExistence(timeout: 3))   // 임시 파일 준비 뒤 나타나는 ShareLink
+
+        XCTAssertTrue(export.isHittable)
+        export.tap()
+        // fileExporter = 시스템 문서 피커(별도 프로세스). XCUITest는 원격 뷰 트리를 앱 하위로 본다 ('Browse View (Picker)', '저장')
+        let picker = app.otherElements["Browse View (Picker)"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label == '저장' OR label == 'Save'")).firstMatch.exists)
+        // 닫기: 폴더 안이면 뒤로(둘러보기 루트) → 취소. 취소가 없으면 시트를 끌어내려 닫는다
+        let back = app.buttons["BackButton"]
+        if back.exists { back.tap() }
+        let cancel = app.buttons.matching(NSPredicate(format: "label == '취소' OR label == 'Cancel'")).firstMatch
+        if cancel.waitForExistence(timeout: 3) { cancel.tap() } else { picker.swipeDown() }
+        XCTAssertTrue(picker.waitForNonExistence(timeout: 5))
+        XCTAssertFalse(element(containing: "내보내기 실패").exists)
+
+        let done = app.buttons["완료"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        done.tap()
+        XCTAssertTrue(export.waitForNonExistence(timeout: 3))
+        XCTAssertTrue(row.waitForExistence(timeout: 3))
+    }
 }

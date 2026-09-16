@@ -10,9 +10,12 @@ struct BeanFormView: View {
     @State private var pickingFlavor = false
     @State private var photoItem: PhotosPickerItem?
     private let isNew: Bool
+    @State private var before: Snapshot.BeanDTO   // 편집 전 지문. 실제로 바뀐 경우에만 updatedAt 갱신
 
     init(bean: Bean? = nil) {
-        _bean = State(initialValue: bean ?? Bean())
+        let target = bean ?? Bean()
+        _bean = State(initialValue: target)
+        _before = State(initialValue: Snapshot.BeanDTO(target, includeBrews: false))
         isNew = bean == nil
     }
 
@@ -24,18 +27,18 @@ struct BeanFormView: View {
                     TextField("로스터리", text: $bean.roaster).accessibilityIdentifier("roasterField")
                     OptionPickerRow(title: "로스팅 포인트", value: $bean.roastLevel, groups: BeanOptions.roastLevels, id: "roast", ownColor: true)
                     TextField("판매 페이지 URL", text: $bean.url)
-                        .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .urlField()
                 }
                 Section("패키지 사진") {
-                    if let image = bean.photo.flatMap(UIImage.init(data:)) {
-                        Image(uiImage: image).resizable().scaledToFit()
+                    if let image = bean.photo.flatMap(Image.init(data:)) {
+                        image.resizable().scaledToFit()
                             .frame(maxWidth: .infinity, maxHeight: 220)
                     }
                     PhotosPicker(selection: $photoItem, matching: .images) {
                         Label(bean.photo == nil ? "사진 선택" : "사진 변경", systemImage: "photo")
                     }
                     if bean.photo != nil {
-                        Button("사진 삭제", role: .destructive) { bean.photo = nil; photoItem = nil }
+                        Button("사진 삭제", role: .destructive) { bean.photo = nil; bean.photoUpdatedAt = .now; photoItem = nil }
                     }
                 }
                 Section("원산지") {
@@ -62,6 +65,7 @@ struct BeanFormView: View {
             .task(id: photoItem) {
                 guard let photoItem, let data = try? await photoItem.loadTransferable(type: Data.self) else { return }
                 bean.photo = Bean.compressedPhoto(data) ?? data
+                bean.photoUpdatedAt = .now
             }
             .sheet(isPresented: $pickingFlavor) { FlavorPickerSheet(selection: $bean.cupNotes) }
             .navigationTitle(isNew ? "새 원두" : "원두 편집")
@@ -76,6 +80,11 @@ struct BeanFormView: View {
                 }
             }
         }
+        .onDisappear {
+            // 새 원두는 저장(insert)됐을 때, 기존 원두는 필드가 바뀌었을 때만 동기화 대상으로 표시
+            if isNew ? bean.modelContext != nil : Snapshot.BeanDTO(bean, includeBrews: false) != before { bean.updatedAt = .now }
+        }
+        .formSheet()
     }
 
     private func save() {

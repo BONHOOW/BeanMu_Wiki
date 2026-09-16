@@ -4,9 +4,10 @@ import SwiftData
 struct BeanListView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Bean.createdAt, order: .reverse) private var beans: [Bean]
-    @State private var path: [Bean] = []
+    @State private var selection: Bean?
     @State private var search = ""
     @State private var showingForm = false
+    @State private var showingSettings = false
     @State private var importError = ""
     @State private var showingImportError = false
 
@@ -18,17 +19,17 @@ struct BeanListView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
-            List {
+        NavigationSplitView {
+            List(selection: $selection) {
                 ForEach(filtered) { bean in
                     NavigationLink(value: bean) { BeanRow(bean: bean) }
+                        .contextMenu { Button("삭제", role: .destructive) { delete(bean) } }
                 }
                 .onDelete { offsets in
-                    for i in offsets { context.delete(filtered[i]) }
+                    for i in offsets { delete(filtered[i]) }
                 }
             }
             .navigationTitle("원두")
-            .navigationDestination(for: Bean.self) { BeanDetailView(bean: $0) }
             .searchable(text: $search, prompt: "원두, 로스터리, 산지")
             .overlay {
                 if beans.isEmpty {
@@ -38,23 +39,41 @@ struct BeanListView: View {
             }
             .toolbar {
                 // ChatGPT가 출력한 📦 BeanMuWiki Import JSON을 클립보드에서 바로 가져온다 (ChatGPT_Prompt.md)
-                Button("가져오기", systemImage: "doc.on.clipboard") { importJSON(UIPasteboard.general.string ?? "") }
+                Button("설정", systemImage: "gearshape") { showingSettings = true }
+                    .accessibilityIdentifier("settingsButton")
+                Button("가져오기", systemImage: "doc.on.clipboard") { importJSON(pasteboardString ?? "") }
+                    .keyboardShortcut("v", modifiers: [.command, .shift])
                 Button("추가", systemImage: "plus") { showingForm = true }
+                    .keyboardShortcut("n")
             }
             .sheet(isPresented: $showingForm) { BeanFormView() }
+            .sheet(isPresented: $showingSettings) { SettingsView() }
             .alert("가져오기 실패", isPresented: $showingImportError) {} message: { Text(importError) }
-            .task { migrateLegacyIced() }
+            .task { migrateLegacyIced(); Snapshot.repairIdentity(in: context) }
             #if DEBUG
             .task { seedIfNeeded() }
             #endif
+            .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 420)
+        } detail: {
+            if let selection {
+                NavigationStack { BeanDetailView(bean: selection) }.id(selection)
+            } else {
+                ContentUnavailableView("원두를 선택하세요", systemImage: "cup.and.saucer")
+            }
         }
+    }
+
+    private func delete(_ bean: Bean) {
+        if selection == bean { selection = nil }
+        context.insert(Tombstone(uuid: bean.uuid, kind: "bean"))   // 다른 기기에도 삭제를 전파
+        context.delete(bean)
     }
 
     private func importJSON(_ pasted: String) {
         // 첫 사용 시 iOS의 붙여넣기 허용 알림이 끼어들면 빈 문자열이 올 수 있다 → 클립보드를 한 번 더 읽어 보완
-        let text = pasted.isEmpty ? (UIPasteboard.general.string ?? "") : pasted
+        let text = pasted.isEmpty ? (pasteboardString ?? "") : pasted
         do {
-            path = [try BeanImport.parse(text).apply(to: context, existing: beans)]
+            selection = try BeanImport.parse(text).apply(to: context, existing: beans)
         } catch {
             importError = "ChatGPT가 출력한 json 블록 전체를 복사했는지 확인하세요.\n\n\(error.localizedDescription)\n\n받은 내용 \(text.count)자: \(text.prefix(80))"
             showingImportError = true
@@ -68,8 +87,8 @@ private struct BeanRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // ponytail: 행마다 JPEG 디코딩. 원두가 100개를 넘으면 썸네일 캐시 고려
-            if let image = bean.photo.flatMap(UIImage.init(data:)) {
-                Image(uiImage: image).resizable().scaledToFill()
+            if let image = bean.photo.flatMap(Image.init(data:)) {
+                image.resizable().scaledToFill()
                     .frame(width: 48, height: 48).clipShape(.rect(cornerRadius: 8))
             }
             VStack(alignment: .leading, spacing: 4) {

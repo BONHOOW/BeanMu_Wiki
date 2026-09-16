@@ -233,5 +233,5 @@ struct ImportTests {
 /// 인메모리 컨테이너. 반환값을 테스트가 끝날 때까지 변수로 잡아 두어야 한다 — 컨테이너가 해제되면 mainContext 사용 시 SIGTRAP.
 @MainActor
 private func makeContainer() throws -> ModelContainer {
-    try ModelContainer(for: Bean.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    try ModelContainer(for: Bean.self, Tombstone.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
 }

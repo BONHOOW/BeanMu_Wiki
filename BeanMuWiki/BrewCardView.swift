@@ -37,7 +37,9 @@ struct BrewCardView: View {
         }
         .navigationTitle("추출 카드")
         .toolbarTitleDisplayMode(.inline)
+        #if os(iOS)
         .toolbar(.hidden, for: .tabBar)
+        #endif
         .safeAreaBar(edge: .bottom) {
             HStack {
                 if !timer.started {
@@ -65,7 +67,7 @@ struct BrewCardView: View {
                 BrewFormView(bean: bean, template: brew, measuredTime: PourStep.timeString(Int(timer.elapsed(at: .now))))
             }
         }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .onDisappear { keepScreenAwake(false) }
     }
 
     // MARK: 섹션
@@ -174,19 +176,19 @@ struct BrewCardView: View {
 
     private func start() {
         timer.start()
-        UIApplication.shared.isIdleTimerDisabled = true
+        keepScreenAwake(true)
     }
 
     /// 저장 없이 멈추고 0:00으로. 다시 '타이머 시작' 상태가 된다.
     private func reset() {
         timer.reset()
-        UIApplication.shared.isIdleTimerDisabled = false
+        keepScreenAwake(false)
     }
 
     /// 타이머를 멈추고 이 레시피로 새 기록(실측 시간 채움)을 연다. 원두가 없으면 멈추기만.
     private func finish() {
         timer.pause()
-        UIApplication.shared.isIdleTimerDisabled = false
+        keepScreenAwake(false)
         finishing = brew.bean != nil
     }
 }

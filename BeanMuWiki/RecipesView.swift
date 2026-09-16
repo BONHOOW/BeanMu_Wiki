@@ -5,12 +5,13 @@ import SwiftData
 struct RecipesView: View {
     @Query(sort: \Bean.createdAt, order: .reverse) private var beans: [Bean]
     @State private var filter: Bool?   // nil = 전체, false = HOT, true = ICED
+    @State private var selection: Brew?
 
     private var servings: [Bool] { filter.map { [$0] } ?? [false, true] }
 
     var body: some View {
-        NavigationStack {
-            List {
+        NavigationSplitView {
+            List(selection: $selection) {
                 Section {
                     Picker("서빙 필터", selection: $filter) {
                         Text("전체").tag(Bool?.none)
@@ -25,7 +26,7 @@ struct RecipesView: View {
                     ForEach(beans) { bean in
                         ForEach(servings, id: \.self) { iced in
                             if let brew = bean.favoriteBrew(iced: iced) {
-                                NavigationLink { BrewCardView(brew: brew) } label: { RecipeCard(bean: bean, brew: brew) }
+                                NavigationLink(value: brew) { RecipeCard(bean: bean, brew: brew) }
                                     .listRowSeparator(.hidden)
                             }
                         }
@@ -33,11 +34,18 @@ struct RecipesView: View {
                 }
             }
             .navigationTitle("레시피")
+            .navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 480)
             .overlay {
                 if beans.allSatisfy(\.brews.isEmpty) {
                     ContentUnavailableView("기준 레시피가 없어요", systemImage: "star",
                                            description: Text("원두의 추출 기록에서 ★ 기준 레시피를 지정하면 여기에 모입니다."))
                 }
+            }
+        } detail: {
+            if let selection, !selection.isDeleted {
+                BrewCardView(brew: selection).id(selection)
+            } else {
+                ContentUnavailableView("레시피를 선택하세요", systemImage: "timer")
             }
         }
     }

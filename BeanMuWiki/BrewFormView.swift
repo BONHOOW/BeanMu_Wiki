@@ -9,16 +9,19 @@ struct BrewFormView: View {
     @State private var waterTyped = false   // 이번 편집에서 사용자가 물 총량을 단계와 다르게 직접 적었는지
     private let bean: Bean?   // 새 기록일 때만 세팅
     private var isNew: Bool { bean != nil }
+    @State private var before: Snapshot.BrewDTO   // 편집 전 지문
 
     init(bean: Bean) {
         let brew = Brew(template: bean.favoriteBrew)
         brew.isFavorite = bean.brews.isEmpty
         _brew = State(initialValue: brew)
+        _before = State(initialValue: Snapshot.BrewDTO(brew))
         self.bean = bean
     }
 
     init(brew: Brew) {
         _brew = State(initialValue: brew)
+        _before = State(initialValue: Snapshot.BrewDTO(brew))
         bean = nil
     }
 
@@ -29,6 +32,7 @@ struct BrewFormView: View {
         brew.rating = 0
         brew.isFavorite = false
         _brew = State(initialValue: brew)
+        _before = State(initialValue: Snapshot.BrewDTO(brew))
         self.bean = bean
     }
 
@@ -49,18 +53,18 @@ struct BrewFormView: View {
                     LabeledContent("원두 (g)") {
                         TextField("15", value: $brew.doseGrams, format: .number.grouping(.never))
                             .accessibilityIdentifier("doseField")
-                            .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                            .numericKeyboard().multilineTextAlignment(.trailing)
                     }
                     if brew.isIced {
                         LabeledContent("얼음 (g)") {
                             TextField("120", value: $brew.iceGrams, format: .number.grouping(.never))
                                 .accessibilityIdentifier("iceField")
-                                .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                                .numericKeyboard().multilineTextAlignment(.trailing)
                         }
                     }
                     LabeledContent("물 온도 (℃)") {
                         TextField("92", value: $brew.waterTempC, format: .number.grouping(.never))
-                            .keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                            .numericKeyboard(.integer).multilineTextAlignment(.trailing)
                     }
                     LabeledContent("분쇄도") {
                         TextField("코만단테 24클릭", text: $brew.grind).multilineTextAlignment(.trailing)
@@ -72,14 +76,15 @@ struct BrewFormView: View {
                         HStack {
                             TextField("0:00", value: step.atSeconds, format: PourTimeFormat())
                                 .accessibilityIdentifier("stepTime\(i)")
-                                .keyboardType(.numbersAndPunctuation).frame(width: 48)
+                                .numericKeyboard(.time).frame(width: 48)
                             TextField("g", value: step.grams, format: .number.grouping(.never))
                                 .accessibilityIdentifier("stepGrams\(i)")
-                                .keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 56)
+                                .numericKeyboard().multilineTextAlignment(.trailing).frame(width: 56)
                             Text("g").foregroundStyle(.secondary)
                             TextField("블룸 · 나선형 푸어", text: step.note)
                                 .accessibilityIdentifier("stepNote\(i)")
                         }
+                        .contextMenu { Button("삭제", role: .destructive) { brew.steps.remove(at: i) } }
                     }
                     .onDelete { brew.steps.remove(atOffsets: $0) }
                     Button("단계 추가", systemImage: "plus") { addStep() }
@@ -93,7 +98,7 @@ struct BrewFormView: View {
                     LabeledContent("물 총량 (g)") {
                         TextField("240", value: $brew.waterGrams, format: .number.grouping(.never))
                             .accessibilityIdentifier("waterField")
-                            .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                            .numericKeyboard().multilineTextAlignment(.trailing)
                     }
                     if brew.isIced {
                         if let ratio = brew.ratioText { LabeledContent("브루 비율", value: ratio) }
@@ -146,6 +151,10 @@ struct BrewFormView: View {
                 }
             }
         }
+        .onDisappear {
+            if isNew ? brew.modelContext != nil : Snapshot.BrewDTO(brew) != before { brew.updatedAt = .now }
+        }
+        .formSheet()
     }
 
     /// 행을 지우면 SwiftUI가 사라지는 행을 옛 인덱스로 한 번 더 그린다 → 범위 밖이면 빈 값으로 받아넘긴다 (직접 $brew.steps[i]를 쓰면 크래시)

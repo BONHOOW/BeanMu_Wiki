@@ -1,6 +1,6 @@
 # BeanMuWiki
 
-**내가 마신 원두를 문서처럼 쌓아 두는 개인용 커피 위키.** 이름은 Bean + 나무위키에서 왔습니다. 원두 한 봉지가 백과사전 항목 하나가 되고, 그 아래에 추출 기록이 편집 이력처럼 쌓입니다.
+**내가 마신 원두를 문서처럼 쌓아 두는 개인용 커피 위키.** iPhone·iPad·Mac에서 같은 코드로 돌아갑니다. 이름은 Bean + 나무위키에서 왔습니다. 원두 한 봉지가 백과사전 항목 하나가 되고, 그 아래에 추출 기록이 편집 이력처럼 쌓입니다.
 
 ## 무엇을 하는 앱인가
 
@@ -13,7 +13,10 @@
 - **레시피 탭과 추출 카드** — 원두마다 서빙별 ★ 기준 레시피가 카드로 모이고 전체 / HOT / ICED로 걸러 볼 수 있습니다. 카드를 열면 조건 한 줄과 푸어 단계가 한 화면에 큰 글씨로 나오고, **타이머 시작**을 누르면 경과 시간에 맞춰 지금 부어야 할 누적 g과 기법, 다음 푸어까지 남은 초가 안내됩니다(단계 전환 햅틱, 추출 중 화면 켜짐 유지). **추출 끝**을 누르면 실제 시간이 들어간 새 기록이 만들어져 별점만 매기면 됩니다.
 - **ChatGPT 연동 (앱 안에 AI 없음)** — 함께 들어 있는 프롬프트(`ChatGPT_Prompt.md`)에 원두를 알려주면 ChatGPT가 산지·품종·가공·컵노트를 조사하고 V60 레시피를 설계한 뒤 마지막에 JSON을 출력합니다. 그 JSON을 복사해 앱의 **가져오기** 버튼을 누르면 원두 문서와 기준 레시피가 한 번에 만들어집니다. 로스터리 표기(Heirloom, Washed, 플로럴, 레몬캔디 …)는 가져올 때 앱 목록의 표준 이름으로 자동 정규화됩니다. 맛 피드백을 주고 받은 보정 레시피도 같은 방법으로 붙여넣으면 기존 원두에 기록만 추가됩니다.
 
-모든 데이터는 기기 안(SwiftData)에만 저장됩니다. 계정도 서버도 없습니다.
+- **Mac 앱** — 같은 소스가 macOS 26에서 왼쪽 원두 목록 · 오른쪽 문서의 2열 창으로 열립니다. 레시피 탭도 카드 목록 · 추출 카드 2열. ⌘N 새 원두, ⇧⌘V 클립보드 가져오기, 우클릭 삭제.
+- **JSON 백업** — 설정(톱니)에서 원두·기록 전체를 JSON 파일로 내보내고(AirDrop·공유 가능) 다시 가져옵니다. 가져오기는 항목별로 더 최근에 수정된 쪽을 남기고, 삭제도 기기 간에 전파됩니다(사진 제외).
+
+데이터는 기기 안(SwiftData)에 저장됩니다. Google Drive 자동 동기화는 다음 버전에서 추가됩니다.
 
 ## 화면
 
@@ -25,18 +28,22 @@
 |---|---|---|---|
 | ![레시피](docs/screenshots/07-recipes.png) | ![추출 카드](docs/screenshots/08-brew-card.png) | ![ICED 폼](docs/screenshots/09-brew-form-iced.png) | ![국가](docs/screenshots/06-country-picker.png) |
 
+| Mac — 원두 | Mac — 레시피 / 추출 카드 |
+|---|---|
+| ![Mac 원두](docs/screenshots/10-mac-beans.png) | ![Mac 레시피](docs/screenshots/11-mac-recipes.png) |
+
 원두 편집 화면(배지 피커): `docs/screenshots/05-bean-form.png`
 
 앱 아이콘 후보 비교: `docs/screenshots/icon-candidates.png`
 
 ## 요구 사항
 
-Xcode 26.6 이상, iOS 26.0 이상. 외부 의존성 없음 (SwiftUI + SwiftData).
+Xcode 26.6 이상, iOS 26.0 / macOS 26.0 이상. 외부 의존성 없음 (SwiftUI + SwiftData). 한 타깃이 iPhone·iPad·Mac을 모두 빌드합니다.
 
 ## 실행
 
 ```
-open BeanMuWiki.xcodeproj      # 시뮬레이터 또는 연결된 iPhone 선택 후 ⌘R
+open BeanMuWiki.xcodeproj      # 실행 대상에서 iPhone 시뮬레이터·연결된 iPhone·My Mac 중 선택 후 ⌘R
 ```
 
 - `-seed` 런치 인자: 샘플 원두 1개와 기록 2개(푸어 단계 포함)를 넣고 시작 (DEBUG 전용)
@@ -51,7 +58,7 @@ xcodebuild test -project BeanMuWiki.xcodeproj -scheme BeanMuWiki \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-- `BeanMuWikiTests/` — Swift Testing 단위 테스트 (비율·별점·기준 레시피·URL 보정·사진 축소·푸어 단계 파싱·JSON 가져오기·플레이버 휠·원산지/품종/가공/로스팅 데이터)
+- `BeanMuWikiTests/` — Swift Testing 단위 테스트 (비율·별점·기준 레시피·URL 보정·사진 축소·푸어 단계 파싱·JSON 가져오기·플레이버 휠·원산지/품종/가공/로스팅 데이터·스냅샷 병합/삭제 전파)
 - `BeanMuWikiUITests/` — XCTest 유저 저니 (원두 추가 → 피커 선택 → 기록 추가 → 저장, 클립보드 JSON 가져오기, 레시피 탭 → 타이머 → 추출 끝 → 기록 저장)
 
 ## ChatGPT로 원두와 레시피 넣기
@@ -74,8 +81,11 @@ BeanMuWiki/
   BeanDetailView.swift  원두 문서, 추출 기록 목록
   BeanFormView.swift    원두 생성/편집 (사진, URL, 플레이버)
   BrewFormView.swift    추출 기록 생성/편집 (조건 + 푸어 단계 + 평가)
-  RecipesView.swift     레시피 탭 (원두별 ★ 기준 레시피 카드)
+  RecipesView.swift     레시피 탭 (원두별·서빙별 ★ 기준 레시피 카드)
   BrewCardView.swift    추출 카드 + 단계 안내 타이머
+  Platform.swift        iOS/macOS 차이를 흡수하는 헬퍼 (클립보드, 이미지 디코딩, 키보드, 시트 크기)
+  Sync/Snapshot.swift   전체 데이터 JSON 스냅샷·병합(LWW)·삭제 전파(Tombstone)
+  Sync/SettingsView.swift  설정 시트 (JSON 백업)
 BeanMuWikiTests/        단위 테스트
 BeanMuWikiUITests/      UI 테스트
 ChatGPT_Prompt.md       레시피 설계 프롬프트 + Import JSON 스키마
@@ -84,7 +94,7 @@ docs/                   로드맵(ROADMAP.md), 디자인 방향(DESIGN_DIRECTION
 
 ## 로드맵
 
-시장조사(`docs/ROADMAP.md`) 기준 다음 순서로 붙일 예정입니다: 로스팅 날짜와 신선도 배지 → 맛 5축 레이더 → 로스터리·산지별 색인 페이지 → 구매 정보 → 패키지 사진 텍스트 인식 → JSON 내보내기와 iCloud 동기화.
+시장조사(`docs/ROADMAP.md`) 기준 다음 순서로 붙일 예정입니다: 로스팅 날짜와 신선도 배지 → 맛 5축 레이더 → 로스터리·산지별 색인 페이지 → 구매 정보 → 패키지 사진 텍스트 인식 → Google Drive 자동 동기화(iPhone↔Mac).
 
 ## 라이선스
 

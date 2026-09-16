@@ -9,6 +9,11 @@ struct BeanDetailView: View {
     @State private var editingBrew: Brew?
 
     private var brews: [Brew] { bean.brews.sorted { $0.date > $1.date } }
+    private func deleteBrew(_ brew: Brew) {
+        context.insert(Tombstone(uuid: brew.uuid, kind: "brew"))
+        context.delete(brew)
+    }
+
     private var hasOrigin: Bool {
         [bean.roaster, bean.country, bean.region, bean.farm, bean.altitude, bean.variety, bean.process, bean.roastLevel]
             .contains { !$0.isEmpty } || bean.pageURL != nil
@@ -16,9 +21,9 @@ struct BeanDetailView: View {
 
     var body: some View {
         List {
-            if let image = bean.photo.flatMap(UIImage.init(data:)) {
+            if let image = bean.photo.flatMap(Image.init(data:)) {
                 Section {
-                    Image(uiImage: image).resizable().scaledToFit()
+                    image.resizable().scaledToFit()
                         .frame(maxWidth: .infinity)
                         .listRowInsets(EdgeInsets())
                 }
@@ -65,9 +70,10 @@ struct BeanDetailView: View {
                 Button("기록 추가", systemImage: "plus") { addingBrew = true }
                 ForEach(brews) { brew in
                     Button { editingBrew = brew } label: { BrewRow(brew: brew) }
+                        .contextMenu { Button("삭제", role: .destructive) { deleteBrew(brew) } }
                 }
                 .onDelete { offsets in
-                    for i in offsets { context.delete(brews[i]) }
+                    for i in offsets { deleteBrew(brews[i]) }
                 }
             }
         }

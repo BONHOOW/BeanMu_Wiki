@@ -69,6 +69,7 @@ struct OptionPickerSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("완료") { dismiss() } }
             }
         }
+        .formSheet()
     }
 
     private func tab(_ name: String?, title: String) -> some View {
