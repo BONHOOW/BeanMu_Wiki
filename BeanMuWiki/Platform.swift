@@ -68,3 +68,15 @@ extension View {
         #endif
     }
 }
+
+extension View {
+    /// 앱 루트 TabView 스타일. iOS/iPad는 sidebarAdaptable, macOS는 기본 탭 + 최소 창 크기.
+    /// (App 본문에서 postfix #if 체인 뒤에 수정자를 더 붙이면 macOS 26에서 창이 생성되지 않는 문제가 있어 헬퍼로 분리)
+    func rootTabStyle() -> some View {
+        #if os(iOS)
+        tabViewStyle(.sidebarAdaptable)
+        #else
+        frame(minWidth: 900, minHeight: 600)
+        #endif
+    }
+}

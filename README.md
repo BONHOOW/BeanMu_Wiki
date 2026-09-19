@@ -15,8 +15,9 @@
 
 - **Mac 앱** — 같은 소스가 macOS 26에서 왼쪽 원두 목록 · 오른쪽 문서의 2열 창으로 열립니다. 레시피 탭도 카드 목록 · 추출 카드 2열. ⌘N 새 원두, ⇧⌘V 클립보드 가져오기, 우클릭 삭제.
 - **JSON 백업** — 설정(톱니)에서 원두·기록 전체를 JSON 파일로 내보내고(AirDrop·공유 가능) 다시 가져옵니다. 가져오기는 항목별로 더 최근에 수정된 쪽을 남기고, 삭제도 기기 간에 전파됩니다(사진 제외).
+- **Google Drive 자동 동기화 (iPhone ↔ Mac)** — 설정에서 Google 계정으로 로그인하면 원두·기록·사진이 그 계정의 Drive 앱 데이터 영역(사용자에게 보이지 않는 공간)에 저장되고, 다른 기기에서 같은 계정으로 로그인하면 자동으로 맞춰집니다. 저장 후 5초, 앱을 앞으로 가져올 때, 지금 동기화 버튼에서 실행되며 항목별로 더 최근 수정본이 남습니다. 외부 SDK 없이 OAuth PKCE + Drive REST만 씁니다.
 
-데이터는 기기 안(SwiftData)에 저장됩니다. Google Drive 자동 동기화는 다음 버전에서 추가됩니다.
+데이터는 기기 안(SwiftData)에 저장되고, Google 동기화는 선택입니다. 로그인하지 않으면 네트워크를 쓰지 않습니다.
 
 ## 화면
 
@@ -51,6 +52,14 @@ open BeanMuWiki.xcodeproj      # 실행 대상에서 iPhone 시뮬레이터·연
 
 실기기 설치는 타깃 → Signing & Capabilities에서 본인 Team을 고른 뒤 ⌘R. 무료 Apple ID는 7일마다 재설치가 필요합니다.
 
+### Google 동기화 켜기 (직접 빌드하는 경우)
+
+이 저장소에는 Google OAuth 클라이언트 ID가 들어 있지 않아 설정 화면에 "클라이언트 ID가 설정되지 않았습니다"라고 나옵니다. 본인 Google Cloud 프로젝트에서 무료로 만들면 됩니다(10분).
+
+1. [console.cloud.google.com](https://console.cloud.google.com) → 새 프로젝트 → **API 및 서비스 → 라이브러리**에서 **Google Drive API** 사용 설정.
+2. **Google Auth Platform**(OAuth 동의 화면) → 대상 **외부**, 본인 Gmail을 테스트 사용자로 추가 → 범위에 `drive.appdata`, `userinfo.email` 추가 → **앱 게시**(비민감 범위라 검증 없이 게시 가능, 테스트 모드의 7일 토큰 만료를 피합니다).
+3. **클라이언트 만들기** → 유형 **iOS**, 번들 ID `com.bonho.BeanMuWiki`(바꿨다면 본인 것) → 생성된 클라이언트 ID를 `BeanMuWiki/Sync/GoogleAuth.swift`의 `GoogleConfig.clientID`에 붙입니다. Mac 앱도 같은 클라이언트를 씁니다.
+
 ## 테스트
 
 ```
@@ -58,8 +67,8 @@ xcodebuild test -project BeanMuWiki.xcodeproj -scheme BeanMuWiki \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-- `BeanMuWikiTests/` — Swift Testing 단위 테스트 (비율·별점·기준 레시피·URL 보정·사진 축소·푸어 단계 파싱·JSON 가져오기·플레이버 휠·원산지/품종/가공/로스팅 데이터·스냅샷 병합/삭제 전파)
-- `BeanMuWikiUITests/` — XCTest 유저 저니 (원두 추가 → 피커 선택 → 기록 추가 → 저장, 클립보드 JSON 가져오기, 레시피 탭 → 타이머 → 추출 끝 → 기록 저장)
+- `BeanMuWikiTests/` — Swift Testing 단위 테스트 (비율·별점·기준 레시피·URL 보정·사진 축소·푸어 단계 파싱·JSON 가져오기·플레이버 휠·원산지/품종/가공/로스팅 데이터·스냅샷 병합/삭제 전파·PKCE·Keychain)
+- `BeanMuWikiUITests/` — XCTest 유저 저니 (원두 추가 → 피커 선택 → 기록 추가 → 저장, 클립보드 JSON 가져오기, 레시피 탭 → 타이머 → 추출 끝 → 기록 저장, 설정 → 백업)
 
 ## ChatGPT로 원두와 레시피 넣기
 
@@ -85,7 +94,11 @@ BeanMuWiki/
   BrewCardView.swift    추출 카드 + 단계 안내 타이머
   Platform.swift        iOS/macOS 차이를 흡수하는 헬퍼 (클립보드, 이미지 디코딩, 키보드, 시트 크기)
   Sync/Snapshot.swift   전체 데이터 JSON 스냅샷·병합(LWW)·삭제 전파(Tombstone)
-  Sync/SettingsView.swift  설정 시트 (JSON 백업)
+  Sync/SettingsView.swift  설정 시트 (Google 동기화 + JSON 백업)
+  Sync/GoogleAuth.swift    Google OAuth PKCE 로그인·토큰 갱신 (ASWebAuthenticationSession, SDK 없음)
+  Sync/DriveClient.swift   Drive appDataFolder REST (목록·다운로드·업로드)
+  Sync/SyncEngine.swift    동기화 엔진 (저장 후 디바운스·포그라운드·수동, LWW 병합, 사진 파일)
+  Sync/Keychain.swift      토큰 저장
 BeanMuWikiTests/        단위 테스트
 BeanMuWikiUITests/      UI 테스트
 ChatGPT_Prompt.md       레시피 설계 프롬프트 + Import JSON 스키마
@@ -94,7 +107,7 @@ docs/                   로드맵(ROADMAP.md), 디자인 방향(DESIGN_DIRECTION
 
 ## 로드맵
 
-시장조사(`docs/ROADMAP.md`) 기준 다음 순서로 붙일 예정입니다: 로스팅 날짜와 신선도 배지 → 맛 5축 레이더 → 로스터리·산지별 색인 페이지 → 구매 정보 → 패키지 사진 텍스트 인식 → Google Drive 자동 동기화(iPhone↔Mac).
+시장조사(`docs/ROADMAP.md`) 기준 다음 순서로 붙일 예정입니다: 로스팅 날짜와 신선도 배지 → 맛 5축 레이더 → 로스터리·산지별 색인 페이지 → 구매 정보 → 패키지 사진 텍스트 인식.
 
 ## 라이선스
 

@@ -2,9 +2,10 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-/// 설정 시트: JSON 백업(내보내기·공유·가져오기). Google 동기화 섹션은 다음 라운드에 추가.
+/// 설정 시트: Google 동기화 + JSON 백업(내보내기·공유·가져오기)
 struct SettingsView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.syncEngine) private var engine
     @Environment(\.dismiss) private var dismiss
     @State private var exportDoc: SnapshotDocument?
     @State private var exporting = false
@@ -18,6 +19,13 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    googleRows
+                } header: {
+                    Text("Google 동기화")
+                } footer: {
+                    Text("원두·기록·사진이 이 Google 계정의 Drive 앱 데이터 영역(사용자에게 보이지 않는 공간)에 저장되고, 다른 기기에서 같은 계정으로 로그인하면 자동으로 맞춰집니다.")
+                }
                 Section {
                     Button("내보내기…", systemImage: "square.and.arrow.down") { export() }
                         .accessibilityIdentifier("exportBackup")
@@ -42,10 +50,39 @@ struct SettingsView: View {
                 if case .failure(let error) = result { message = "내보내기 실패: \(error.localizedDescription)" }
             }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { importFile($0) }
-            .alert("백업", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+            .alert("설정", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             } message: { Text(message ?? "") }
             .task { prepareShareURL() }
             .formSheet()
+        }
+    }
+
+    @ViewBuilder private var googleRows: some View {
+        if let engine { rows(for: engine) } else { Text("동기화 엔진을 사용할 수 없습니다.").foregroundStyle(.secondary) }
+    }
+
+    @ViewBuilder private func rows(for engine: SyncEngine) -> some View {
+        switch engine.state {
+        case .notConfigured:
+            Text("Google 클라이언트 ID가 설정되지 않았습니다. GoogleAuth.swift의 GoogleConfig.clientID에 콘솔에서 만든 iOS 클라이언트 ID를 넣으세요.")
+                .foregroundStyle(.secondary)
+        case .signedOut:
+            Button("Google 계정으로 로그인", systemImage: "person.crop.circle") {
+                Task { do { try await engine.signIn() } catch AuthError.cancelled {} catch { message = error.localizedDescription } }
+            }
+            .accessibilityIdentifier("googleSignIn")
+        default:
+            LabeledContent("계정", value: engine.auth.email ?? "")
+            LabeledContent("마지막 동기화", value: engine.lastSyncAt?.formatted(.relative(presentation: .named)) ?? "없음")
+            if engine.state == .syncing {
+                HStack { ProgressView(); Text("동기화 중…").foregroundStyle(.secondary) }
+            } else if case .error(let text) = engine.state {
+                Text(text).foregroundStyle(.red)
+            }
+            Button("지금 동기화", systemImage: "arrow.triangle.2.circlepath") { engine.requestSync() }
+                .disabled(engine.state == .syncing)
+                .accessibilityIdentifier("syncNow")
+            Button("로그아웃", role: .destructive) { Task { await engine.signOut() } }
         }
     }
 
