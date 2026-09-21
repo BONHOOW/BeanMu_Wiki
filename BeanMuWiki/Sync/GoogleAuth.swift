@@ -10,7 +10,7 @@ import AppKit
 
 enum GoogleConfig {
     /// Google Cloud Console → 클라이언트(iOS, 번들 ID com.bonho.BeanMuWiki)에서 복사한 값. Mac 앱도 같은 클라이언트를 쓴다.
-    static let clientID = "PASTE_ME.apps.googleusercontent.com"
+    static let clientID = "279753157426-ec1nc65htj4tj11is0gtgkrbatvfk30r.apps.googleusercontent.com"
     static var isConfigured: Bool { !clientID.hasPrefix("PASTE_ME") }
     static var scheme: String { scheme(for: clientID) }
     static var redirectURI: String { scheme + ":/oauth2redirect" }

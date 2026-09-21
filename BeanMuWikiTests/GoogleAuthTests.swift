@@ -27,14 +27,15 @@ struct GoogleAuthTests {
     @Test func googleConfigDerivesScheme() {
         #expect(GoogleConfig.scheme(for: "123-abc.apps.googleusercontent.com") == "com.googleusercontent.apps.123-abc")
         #expect(GoogleConfig.redirectURI.hasSuffix(":/oauth2redirect"))
-        #expect(!GoogleConfig.isConfigured)   // 자리표시자 상태
+        #expect(GoogleConfig.isConfigured)
+        #expect(GoogleConfig.scheme == "com.googleusercontent.apps.279753157426-ec1nc65htj4tj11is0gtgkrbatvfk30r")
     }
 
-    @Test func syncEngineStateWithoutConfig() throws {
+    @Test func syncEngineStateSignedOut() throws {
         let container = try ModelContainer(for: Bean.self, Tombstone.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let engine = SyncEngine(context: container.mainContext, enabled: true)
-        #expect(engine.state == .notConfigured)
-        engine.start()   // 미설정 → 네트워크 없이 no-op
-        #expect(engine.state == .notConfigured)
+        #expect(engine.state == .signedOut)   // 클라이언트 ID는 있고 토큰은 없음
+        engine.start()   // 로그아웃 상태 → 네트워크 없이 no-op
+        #expect(engine.state == .signedOut)
     }
 }
