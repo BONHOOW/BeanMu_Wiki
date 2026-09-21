@@ -25,17 +25,24 @@ struct BeanMuWikiApp: App {
 
     private var mainWindow: some Scene {
         WindowGroup {
+            #if os(macOS)
+            MacRootView().rootStyle()
+            #else
             TabView {
                 Tab("원두", systemImage: "cup.and.saucer") { BeanListView() }
                 Tab("레시피", systemImage: "timer") { RecipesView() }
             }
-            .rootTabStyle()
+            .rootStyle()
+            #endif
         }
         .modelContainer(container)
         .environment(\.syncEngine, engine)
-        .commands { CommandGroup(replacing: .newItem) {} }
+        .commands {
+            CommandGroup(replacing: .newItem) {}   // ⌘N은 '추가' 버튼이 가진다
+            SidebarCommands()
+        }
         #if os(macOS)
-        .defaultSize(width: 1100, height: 720)
+        .defaultSize(width: 1180, height: 760)
         #endif
     }
 }

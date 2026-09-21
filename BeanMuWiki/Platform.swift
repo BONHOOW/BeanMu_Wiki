@@ -59,10 +59,10 @@ extension View {
         autocorrectionDisabled()
         #endif
     }
-    /// macOS 시트는 내용의 ideal size로 뜨므로 Form이 너무 작아진다 → 최소 크기. iOS no-op
+    /// 폼 시트. macOS: 그룹 폼 스타일(라벨 왼쪽·입력 오른쪽 정렬, 섹션 박스) + 창 크기 고정. iOS no-op
     func formSheet() -> some View {
         #if os(macOS)
-        frame(minWidth: 480, minHeight: 560)
+        formStyle(.grouped).frame(minWidth: 560, idealWidth: 600, minHeight: 640, idealHeight: 720)
         #else
         self
         #endif
@@ -70,13 +70,20 @@ extension View {
 }
 
 extension View {
-    /// 앱 루트 TabView 스타일. iOS/iPad는 sidebarAdaptable, macOS는 기본 탭 + 최소 창 크기.
-    /// (App 본문에서 postfix #if 체인 뒤에 수정자를 더 붙이면 macOS 26에서 창이 생성되지 않는 문제가 있어 헬퍼로 분리)
-    func rootTabStyle() -> some View {
+    /// 앱 루트 스타일. iOS/iPad는 사이드바 적응형 탭, macOS는 3열 창 최소 크기. 브랜드 틴트는 양쪽 공통.
+    func rootStyle() -> some View {
         #if os(iOS)
-        tabViewStyle(.sidebarAdaptable)
+        tabViewStyle(.sidebarAdaptable).tint(.brand)
         #else
-        frame(minWidth: 900, minHeight: 600)
+        frame(minWidth: 1000, minHeight: 640).tint(.brand)
+        #endif
+    }
+    /// macOS ⌫(삭제 명령). iOS no-op
+    func deleteCommand(_ action: @escaping () -> Void) -> some View {
+        #if os(macOS)
+        onDeleteCommand(perform: action)
+        #else
+        self
         #endif
     }
 }

@@ -28,23 +28,24 @@ struct OptionPickerSheet: View {
         NavigationStack {
             VStack(spacing: 0) {
                 HStack {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    Image(systemName: "magnifyingglass").foregroundStyle(Color.muted)
                     TextField(prompt, text: $search)
+                        .textFieldStyle(.plain)
                         .autocorrectionDisabled()
                         .accessibilityIdentifier(searchIdentifier)
                 }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(.fill.tertiary, in: .capsule)
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(Color.cardTint, in: .rect(cornerRadius: Theme.chip))
                 .padding(.horizontal)
 
-                ScrollView(.horizontal) {
-                    HStack(spacing: 20) {
-                        tab(nil, title: "전체")
-                        ForEach(groups) { tab($0.name, title: $0.name) }
-                    }
-                    .padding(.horizontal)
+                // 카테고리 탭 (Claude category-tab: 활성 = cardTint 배경, 비활성 = muted 글자)
+                // 카테고리 탭은 줄바꿈으로 전부 보이게 (가로 스크롤은 뒤쪽 카테고리가 숨는다)
+                FlowLayout(spacing: Theme.s4) {
+                    tab(nil, title: "전체")
+                    ForEach(groups) { tab($0.name, title: $0.name) }
                 }
-                .scrollIndicators(.hidden)
+                .padding(.horizontal)
+                .padding(.vertical, Theme.s8)
 
                 List {
                     ForEach(options) { row($0) }
@@ -75,34 +76,39 @@ struct OptionPickerSheet: View {
     private func tab(_ name: String?, title: String) -> some View {
         Button(title) { group = name }
             .buttonStyle(.plain)
-            .fontWeight(group == name ? .bold : .regular)
-            .foregroundStyle(group == name ? .primary : .secondary)
-            .padding(.vertical, 10)
-            .overlay(alignment: .bottom) { if group == name { Rectangle().frame(height: 2) } }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(group == name ? Color.ink : Color.muted)
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .background(group == name ? Color.cardTint : .clear, in: .rect(cornerRadius: Theme.chip))
     }
 
     private func row(_ option: BeanOption) -> some View {
         Button { select(option.name) } label: {
             HStack(spacing: 12) {
                 if option.emoji.isEmpty {
-                    Circle().fill(option.color).frame(width: 24, height: 24)
+                    Circle().fill(option.color).frame(width: 20, height: 20)
                 } else {
                     Text(option.emoji).font(.title2).frame(width: 24)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(option.name)
+                    Text(option.name).foregroundStyle(Color.ink)
                     // english에는 검색용 별칭이 " · "로 이어져 있어 첫 표기만 보여 준다
                     if let first = option.english.split(separator: " · ").first, !first.isEmpty {
-                        Text(first).font(.caption).foregroundStyle(.secondary)
+                        Text(first).font(.caption).foregroundStyle(Color.muted)
                     }
                 }
                 Spacer()
                 if selection.contains(option.name) {
-                    Image(systemName: "checkmark").fontWeight(.semibold).foregroundStyle(Color.accentColor)
+                    Image(systemName: "checkmark").fontWeight(.semibold).foregroundStyle(Color.brand)
                 }
             }
+            .contentShape(.rect)
         }
         .tint(.primary)
+        #if os(macOS)
+        .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
+        #endif
         .accessibilityLabel(option.name)
     }
 
@@ -155,6 +161,9 @@ struct OptionPickerRow: View {
             }
         }
         .tint(.primary)
+        #if os(macOS)
+        .buttonStyle(.plain)   // 그룹 폼에서 테두리 상자 대신 다른 행과 같은 평면 행
+        #endif
         .accessibilityIdentifier("\(id)PickerButton")
         .accessibilityLabel(title)
         .accessibilityValue(value.isEmpty ? "선택" : value)
@@ -194,11 +203,11 @@ struct FlavorChips: View {
             ForEach(tags, id: \.self) { tag in
                 HStack(spacing: 6) {
                     Circle().fill(FlavorWheel.color(for: tag)).frame(width: 10, height: 10)
-                    Text(tag)
+                    Text(tag).foregroundStyle(Color.ink)
                 }
                 .font(.subheadline)
                 .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(.fill.tertiary, in: .capsule)
+                .background(Color.cardTint, in: .capsule)
             }
         }
     }

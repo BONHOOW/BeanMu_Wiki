@@ -39,6 +39,18 @@ struct BrewFormView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    // 숫자 헤더: 이 기록만의 숫자(비율·온도·시간)를 크게. 입력하면 바로 갱신
+                    HStack(spacing: 0) {
+                        stat("비율", brew.ratioText ?? "—")
+                        if brew.isIced { stat("최종", brew.finalRatioText ?? "—") }   // "최종 비율" 행은 결과 섹션에
+                        stat("온도", brew.waterTempC.map { "\($0)℃" } ?? "—")
+                        stat("시간", brew.time.isEmpty ? "—" : brew.time)
+                    }
+                    .cardStyle()
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                }
                 Section("추출 조건") {
                     Picker("서빙", selection: $brew.isIced) {
                         Text("HOT").tag(false)
@@ -53,36 +65,37 @@ struct BrewFormView: View {
                     LabeledContent("원두 (g)") {
                         TextField("15", value: $brew.doseGrams, format: .number.grouping(.never))
                             .accessibilityIdentifier("doseField")
-                            .numericKeyboard().multilineTextAlignment(.trailing)
+                            .numericKeyboard().trailingNumber()
                     }
                     if brew.isIced {
                         LabeledContent("얼음 (g)") {
                             TextField("120", value: $brew.iceGrams, format: .number.grouping(.never))
                                 .accessibilityIdentifier("iceField")
-                                .numericKeyboard().multilineTextAlignment(.trailing)
+                                .numericKeyboard().trailingNumber()
                         }
                     }
                     LabeledContent("물 온도 (℃)") {
                         TextField("92", value: $brew.waterTempC, format: .number.grouping(.never))
-                            .numericKeyboard(.integer).multilineTextAlignment(.trailing)
+                            .numericKeyboard(.integer).trailingNumber()
                     }
                     LabeledContent("분쇄도") {
-                        TextField("코만단테 24클릭", text: $brew.grind).multilineTextAlignment(.trailing)
+                        TextField("코만단테 24클릭", text: $brew.grind).trailingNumber(width: 220)
                     }
                 }
                 Section {
                     ForEach(brew.steps.indices, id: \.self) { i in
                         let step = step(i)
                         HStack {
+                            Text("\(i + 1)차").font(.caption).foregroundStyle(Color.muted).frame(width: 28, alignment: .leading)
                             TextField("0:00", value: step.atSeconds, format: PourTimeFormat())
                                 .accessibilityIdentifier("stepTime\(i)")
-                                .numericKeyboard(.time).frame(width: 48)
+                                .numericKeyboard(.time).plainField().frame(width: Self.timeWidth)
                             TextField("g", value: step.grams, format: .number.grouping(.never))
                                 .accessibilityIdentifier("stepGrams\(i)")
-                                .numericKeyboard().multilineTextAlignment(.trailing).frame(width: 56)
-                            Text("g").foregroundStyle(.secondary)
+                                .numericKeyboard().plainField().multilineTextAlignment(.trailing).frame(width: Self.gramsWidth)
+                            Text("g").foregroundStyle(Color.muted)
                             TextField("블룸 · 나선형 푸어", text: step.note)
-                                .accessibilityIdentifier("stepNote\(i)")
+                                .accessibilityIdentifier("stepNote\(i)").plainField()
                         }
                         .contextMenu { Button("삭제", role: .destructive) { brew.steps.remove(at: i) } }
                     }
@@ -98,7 +111,7 @@ struct BrewFormView: View {
                     LabeledContent("물 총량 (g)") {
                         TextField("240", value: $brew.waterGrams, format: .number.grouping(.never))
                             .accessibilityIdentifier("waterField")
-                            .numericKeyboard().multilineTextAlignment(.trailing)
+                            .numericKeyboard().trailingNumber()
                     }
                     if brew.isIced {
                         if let ratio = brew.ratioText { LabeledContent("브루 비율", value: ratio) }
@@ -108,7 +121,7 @@ struct BrewFormView: View {
                         LabeledContent("비율", value: ratio)
                     }
                     LabeledContent("추출 시간") {
-                        TextField("2:45", text: $brew.time).multilineTextAlignment(.trailing)
+                        TextField("2:45", text: $brew.time).trailingNumber()
                     }
                 }
                 Section("평가") {
@@ -117,13 +130,14 @@ struct BrewFormView: View {
                         Spacer()
                         ForEach(1...5, id: \.self) { i in
                             Button { brew.rating = i } label: {
-                                Image(systemName: i <= brew.rating ? "star.fill" : "star")
-                                    .foregroundStyle(.orange)
+                                Image(systemName: "star.fill").font(.title3)
+                                    .foregroundStyle(i <= brew.rating ? Color.cherry : Color.hairline)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("\(i)점")
                         }
                     }
-                    Toggle("기준 레시피", isOn: $brew.isFavorite)
+                    Toggle("기준 레시피", isOn: $brew.isFavorite).tint(.cta)
                     TextField("테이스팅 노트 / 레시피 메모", text: $brew.notes, axis: .vertical).lineLimit(4...)
                 }
             }
@@ -157,6 +171,20 @@ struct BrewFormView: View {
         .formSheet()
     }
 
+    #if os(macOS)
+    private static let timeWidth: CGFloat = 64, gramsWidth: CGFloat = 72
+    #else
+    private static let timeWidth: CGFloat = 48, gramsWidth: CGFloat = 56
+    #endif
+
+    private func stat(_ label: String, _ value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.title2.weight(.semibold)).fontDesign(.rounded).monospacedDigit().foregroundStyle(Color.ink)
+            Text(label).font(.caption).foregroundStyle(Color.muted)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     /// 행을 지우면 SwiftUI가 사라지는 행을 옛 인덱스로 한 번 더 그린다 → 범위 밖이면 빈 값으로 받아넘긴다 (직접 $brew.steps[i]를 쓰면 크래시)
     private func step(_ i: Int) -> Binding<PourStep> {
         Binding(get: { brew.steps.indices.contains(i) ? brew.steps[i] : PourStep(atSeconds: 0, grams: 0, note: "") },
@@ -180,6 +208,25 @@ struct BrewFormView: View {
         }
         if brew.isFavorite { brew.bean?.setFavorite(brew) }   // 같은 서빙의 다른 ★만 해제
         dismiss()
+    }
+}
+
+private extension View {
+    /// macOS 그룹 폼은 TextField의 title을 라벨로 그린다 → LabeledContent 안의 필드는 title(placeholder)을 숨긴다. iOS no-op
+    func plainField() -> some View {
+        #if os(macOS)
+        labelsHidden()
+        #else
+        self
+        #endif
+    }
+    /// LabeledContent 오른쪽의 값 필드. macOS는 폭 고정 + 라벨 숨김
+    func trailingNumber(width: CGFloat = 96) -> some View {
+        #if os(macOS)
+        plainField().frame(width: width).multilineTextAlignment(.trailing)
+        #else
+        multilineTextAlignment(.trailing)
+        #endif
     }
 }
 

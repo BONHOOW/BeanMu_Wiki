@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-/// 설정 시트: Google 동기화 + JSON 백업(내보내기·공유·가져오기)
+/// 설정: Google 동기화 + JSON 백업(내보내기·공유·가져오기). iOS는 시트, macOS는 설정 창(⌘,).
 struct SettingsView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.syncEngine) private var engine
@@ -15,46 +15,58 @@ struct SettingsView: View {
 
     /// 파일명용 yyyyMMdd (현지 시간대)
     private var dateStamp: String { Date.now.formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day().dateSeparator(.omitted)) }
+    private var version: String {
+        let info = Bundle.main.infoDictionary ?? [:]
+        return "BeanMuWiki \(info["CFBundleShortVersionString"] ?? "") (\(info["CFBundleVersion"] ?? ""))"
+    }
 
     var body: some View {
+        #if os(macOS)
+        form.formStyle(.grouped).frame(width: 480, height: 600).navigationTitle("설정")
+        #else
         NavigationStack {
-            Form {
-                Section {
-                    googleRows
-                } header: {
-                    Text("Google 동기화")
-                } footer: {
-                    Text("원두·기록·사진이 이 Google 계정의 Drive 앱 데이터 영역(사용자에게 보이지 않는 공간)에 저장되고, 다른 기기에서 같은 계정으로 로그인하면 자동으로 맞춰집니다.")
-                }
-                Section {
-                    Button("내보내기…", systemImage: "square.and.arrow.down") { export() }
-                        .accessibilityIdentifier("exportBackup")
-                    if let shareURL {
-                        ShareLink(item: shareURL) { Label("AirDrop / 공유", systemImage: "square.and.arrow.up") }
-                    }
-                    Button("백업 파일 가져오기…", systemImage: "square.and.arrow.down.on.square") { importing = true }
-                        .accessibilityIdentifier("importBackup")
-                } header: {
-                    Text("JSON 백업")
-                } footer: {
-                    Text("원두·기록 전체를 JSON 파일로 저장하거나 불러옵니다. 가져오기는 같은 항목이면 더 최근에 수정된 쪽을 남깁니다. 사진은 백업 파일에 포함되지 않습니다.")
-                }
-            }
-            .navigationTitle("설정")
-            .toolbarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("완료") { dismiss() } }
-            }
-            .fileExporter(isPresented: $exporting, document: exportDoc, contentType: .json,
-                          defaultFilename: "BeanMuWiki-\(dateStamp)") { result in
-                if case .failure(let error) = result { message = "내보내기 실패: \(error.localizedDescription)" }
-            }
-            .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { importFile($0) }
-            .alert("설정", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
-            } message: { Text(message ?? "") }
-            .task { prepareShareURL() }
-            .formSheet()
+            form
+                .navigationTitle("설정")
+                .toolbarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("완료") { dismiss() } } }
         }
+        #endif
+    }
+
+    private var form: some View {
+        Form {
+            Section {
+                googleRows
+            } header: {
+                Text("Google 동기화")
+            } footer: {
+                Text("원두·기록·사진을 이 계정의 Drive 앱 데이터 영역에 저장해 같은 계정으로 로그인한 기기끼리 맞춥니다.")
+            }
+            Section {
+                Button("내보내기…", systemImage: "square.and.arrow.down") { export() }
+                    .accessibilityIdentifier("exportBackup")
+                if let shareURL {
+                    ShareLink(item: shareURL) { Label("AirDrop / 공유", systemImage: "square.and.arrow.up") }
+                }
+                Button("백업 파일 가져오기…", systemImage: "square.and.arrow.down.on.square") { importing = true }
+                    .accessibilityIdentifier("importBackup")
+            } header: {
+                Text("JSON 백업")
+            } footer: {
+                VStack(alignment: .leading, spacing: Theme.s12) {
+                    Text("원두·기록 전체를 JSON 파일로 저장하거나 불러옵니다. 같은 항목은 더 최근 수정본이 남고, 사진은 포함되지 않습니다.")
+                    Text(version)
+                }
+            }
+        }
+        .fileExporter(isPresented: $exporting, document: exportDoc, contentType: .json,
+                      defaultFilename: "BeanMuWiki-\(dateStamp)") { result in
+            if case .failure(let error) = result { message = "내보내기 실패: \(error.localizedDescription)" }
+        }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { importFile($0) }
+        .alert("설정", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+        } message: { Text(message ?? "") }
+        .task { prepareShareURL() }
     }
 
     @ViewBuilder private var googleRows: some View {
@@ -72,12 +84,16 @@ struct SettingsView: View {
             }
             .accessibilityIdentifier("googleSignIn")
         default:
-            LabeledContent("계정", value: engine.auth.email ?? "")
-            LabeledContent("마지막 동기화", value: engine.lastSyncAt?.formatted(.relative(presentation: .named)) ?? "없음")
-            if engine.state == .syncing {
-                HStack { ProgressView(); Text("동기화 중…").foregroundStyle(.secondary) }
-            } else if case .error(let text) = engine.state {
-                Text(text).foregroundStyle(.red)
+            LabeledContent("계정") {
+                Label(engine.auth.email ?? "", systemImage: "person.crop.circle").labelStyle(.titleAndIcon)
+            }
+            LabeledContent("마지막 동기화", value: engine.lastSyncAt?.relativeKorean ?? "없음")
+            LabeledContent("상태") {
+                switch engine.state {
+                case .syncing: HStack(spacing: 6) { ProgressView().controlSize(.small); Text("동기화 중…") }.foregroundStyle(.secondary)
+                case .error(let text): Text(text).foregroundStyle(.red)
+                default: Text("동기화됨").foregroundStyle(.secondary)
+                }
             }
             Button("지금 동기화", systemImage: "arrow.triangle.2.circlepath") { engine.requestSync() }
                 .disabled(engine.state == .syncing)
@@ -93,7 +109,7 @@ struct SettingsView: View {
         } catch { message = "내보내기 실패: \(error.localizedDescription)" }
     }
 
-    /// AirDrop·공유용 임시 파일. 시트를 열 때 한 번 만든다.
+    /// AirDrop·공유용 임시 파일. 화면을 열 때 한 번 만든다.
     private func prepareShareURL() {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("BeanMuWiki-\(dateStamp).json")
         if let data = try? Snapshot.make(from: context).encoded(), (try? data.write(to: url, options: .atomic)) != nil {
@@ -112,4 +128,9 @@ struct SettingsView: View {
             message = "가져오기 실패: \(error.localizedDescription)"
         }
     }
+}
+
+extension Date {
+    /// "17분 전" — 앱 문구가 모두 한국어라 시스템 로캘과 무관하게 한국어로 고정
+    var relativeKorean: String { formatted(.relative(presentation: .named).locale(Locale(identifier: "ko_KR"))) }
 }

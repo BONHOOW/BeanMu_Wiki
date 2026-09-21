@@ -13,7 +13,8 @@
 - **레시피 탭과 추출 카드** — 원두마다 서빙별 ★ 기준 레시피가 카드로 모이고 전체 / HOT / ICED로 걸러 볼 수 있습니다. 카드를 열면 조건 한 줄과 푸어 단계가 한 화면에 큰 글씨로 나오고, **타이머 시작**을 누르면 경과 시간에 맞춰 지금 부어야 할 누적 g과 기법, 다음 푸어까지 남은 초가 안내됩니다(단계 전환 햅틱, 추출 중 화면 켜짐 유지). **추출 끝**을 누르면 실제 시간이 들어간 새 기록이 만들어져 별점만 매기면 됩니다.
 - **ChatGPT 연동 (앱 안에 AI 없음)** — 함께 들어 있는 프롬프트(`ChatGPT_Prompt.md`)에 원두를 알려주면 ChatGPT가 산지·품종·가공·컵노트를 조사하고 V60 레시피를 설계한 뒤 마지막에 JSON을 출력합니다. 그 JSON을 복사해 앱의 **가져오기** 버튼을 누르면 원두 문서와 기준 레시피가 한 번에 만들어집니다. 로스터리 표기(Heirloom, Washed, 플로럴, 레몬캔디 …)는 가져올 때 앱 목록의 표준 이름으로 자동 정규화됩니다. 맛 피드백을 주고 받은 보정 레시피도 같은 방법으로 붙여넣으면 기존 원두에 기록만 추가됩니다.
 
-- **Mac 앱** — 같은 소스가 macOS 26에서 왼쪽 원두 목록 · 오른쪽 문서의 2열 창으로 열립니다. 레시피 탭도 카드 목록 · 추출 카드 2열. ⌘N 새 원두, ⇧⌘V 클립보드 가져오기, 우클릭 삭제.
+- **Mac 앱** — 같은 소스가 macOS 26에서 Mac다운 3열 창으로 열립니다. 왼쪽 사이드바는 색인(전체 원두 · 레시피 · HOT/ICED · 로스터리별 · 원산지별, 개수 배지), 가운데는 목록과 검색, 오른쪽은 원두 문서 또는 추출 카드. 추출 기록은 정렬 가능한 표로, 설정은 ⌘, 창으로 열립니다. ⌘N 새 원두, ⇧⌘V 클립보드 가져오기, ⌫·우클릭 삭제(확인 후), 툴바와 사이드바 아래에 동기화 상태 표시.
+- **디자인** — `Theme.swift` 한 파일의 토큰(크림 캔버스·카드·헤어라인, 숲색 브랜드, 체리 ★, HOT 앰버 / ICED 틸, 반지름 8·12·16, 간격 4~32)을 iPhone·Mac이 함께 씁니다. 원두 문서는 위키 인포박스 형태, 기록 폼은 맨 위에 `1:16 · 92℃ · 2:45` 숫자 헤더, 플레이버 피커는 카테고리 탭. 라이트·다크 모두 지원. 방향 문서는 `docs/DESIGN_DIRECTION.md`.
 - **JSON 백업** — 설정(톱니)에서 원두·기록 전체를 JSON 파일로 내보내고(AirDrop·공유 가능) 다시 가져옵니다. 가져오기는 항목별로 더 최근에 수정된 쪽을 남기고, 삭제도 기기 간에 전파됩니다(사진 제외).
 - **Google Drive 자동 동기화 (iPhone ↔ Mac)** — 설정에서 Google 계정으로 로그인하면 원두·기록·사진이 그 계정의 Drive 앱 데이터 영역(사용자에게 보이지 않는 공간)에 저장되고, 다른 기기에서 같은 계정으로 로그인하면 자동으로 맞춰집니다. 저장 후 5초, 앱을 앞으로 가져올 때, 지금 동기화 버튼에서 실행되며 항목별로 더 최근 수정본이 남습니다. 외부 SDK 없이 OAuth PKCE + Drive REST만 씁니다.
 
@@ -29,9 +30,13 @@
 |---|---|---|---|
 | ![레시피](docs/screenshots/07-recipes.png) | ![추출 카드](docs/screenshots/08-brew-card.png) | ![ICED 폼](docs/screenshots/09-brew-form-iced.png) | ![국가](docs/screenshots/06-country-picker.png) |
 
-| Mac — 원두 | Mac — 레시피 / 추출 카드 |
+| Mac — 원두 문서 (3열) | Mac — 레시피 / 추출 카드 |
 |---|---|
 | ![Mac 원두](docs/screenshots/10-mac-beans.png) | ![Mac 레시피](docs/screenshots/11-mac-recipes.png) |
+
+| Mac — 기록 폼 (숫자 헤더) | Mac — 다크 모드 |
+|---|---|
+| ![Mac 기록 폼](docs/screenshots/12-mac-brew-form.png) | ![Mac 다크](docs/screenshots/13-mac-beans-dark.png) |
 
 원두 편집 화면(배지 피커): `docs/screenshots/05-bean-form.png`
 
@@ -68,7 +73,13 @@ xcodebuild test -project BeanMuWiki.xcodeproj -scheme BeanMuWiki \
 ```
 
 - `BeanMuWikiTests/` — Swift Testing 단위 테스트 (비율·별점·기준 레시피·URL 보정·사진 축소·푸어 단계 파싱·JSON 가져오기·플레이버 휠·원산지/품종/가공/로스팅 데이터·스냅샷 병합/삭제 전파·PKCE·Keychain)
-- `BeanMuWikiUITests/` — XCTest 유저 저니 (원두 추가 → 피커 선택 → 기록 추가 → 저장, 클립보드 JSON 가져오기, 레시피 탭 → 타이머 → 추출 끝 → 기록 저장, 설정 → 백업)
+- `BeanMuWikiUITests/UserJourneyTests` — XCTest 유저 저니 (원두 추가 → 피커 선택 → 기록 추가 → 저장, 클립보드 JSON 가져오기, 레시피 탭 → 타이머 → 추출 끝 → 기록 저장, 설정 → 백업)
+- `BeanMuWikiUITests/LayoutTests` — 레이아웃·비율 검사 (요소가 화면 밖으로 나가지 않는지, 입력 필드 폭, 설정 시트·플레이버 피커 배치, 접근성 큰 글자, 가로 모드). iPad 시뮬레이터에서도 같은 검사를 돌릴 수 있습니다:
+
+```
+xcodebuild test -project BeanMuWiki.xcodeproj -scheme BeanMuWiki \
+  -destination 'platform=iOS Simulator,name=iPad Air 11-inch (M4)' -only-testing:BeanMuWikiUITests/LayoutTests
+```
 
 ## ChatGPT로 원두와 레시피 넣기
 
@@ -92,7 +103,9 @@ BeanMuWiki/
   BrewFormView.swift    추출 기록 생성/편집 (조건 + 푸어 단계 + 평가)
   RecipesView.swift     레시피 탭 (원두별·서빙별 ★ 기준 레시피 카드)
   BrewCardView.swift    추출 카드 + 단계 안내 타이머
-  Platform.swift        iOS/macOS 차이를 흡수하는 헬퍼 (클립보드, 이미지 디코딩, 키보드, 시트 크기)
+  Theme.swift           디자인 토큰 (색 라이트/다크 쌍, 반지름, 간격, 카드·캔버스 헬퍼, Pill)
+  MacRootView.swift     macOS 3열 루트 (사이드바 색인 · 목록 · 문서), 동기화 상태 표시
+  Platform.swift        iOS/macOS 차이를 흡수하는 헬퍼 (클립보드, 이미지 디코딩, 키보드, 시트 크기, ⌫ 삭제)
   Sync/Snapshot.swift   전체 데이터 JSON 스냅샷·병합(LWW)·삭제 전파(Tombstone)
   Sync/SettingsView.swift  설정 시트 (Google 동기화 + JSON 백업)
   Sync/GoogleAuth.swift    Google OAuth PKCE 로그인·토큰 갱신 (ASWebAuthenticationSession, SDK 없음)

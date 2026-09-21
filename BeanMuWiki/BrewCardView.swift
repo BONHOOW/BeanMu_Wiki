@@ -31,6 +31,7 @@ struct BrewCardView: View {
                 }
                 .padding()
             }
+            .background(Color.canvas)
             .sensoryFeedback(trigger: phase) { _, new in
                 new == steps.count && endSeconds != nil ? .success : .impact
             }
@@ -43,12 +44,12 @@ struct BrewCardView: View {
         .safeAreaBar(edge: .bottom) {
             HStack {
                 if !timer.started {
-                    wide("타이머 시작", id: "startTimer") { start() }.buttonStyle(.glassProminent)
+                    wide("타이머 시작", id: "startTimer") { start() }.buttonStyle(.glassProminent).tint(.cta)
                 } else {
                     if timer.isRunning {
-                        wide("일시정지", id: "pauseTimer") { timer.pause() }.buttonStyle(.glassProminent)
+                        wide("일시정지", id: "pauseTimer") { timer.pause() }.buttonStyle(.glassProminent).tint(.cta)
                     } else {
-                        wide("계속", id: "resumeTimer") { start() }.buttonStyle(.glassProminent)
+                        wide("계속", id: "resumeTimer") { start() }.buttonStyle(.glassProminent).tint(.cta)
                     }
                     wide("초기화", id: "resetTimer") { confirmingReset = true }.buttonStyle(.glass)
                         .confirmationDialog("타이머를 0:00으로 되돌릴까요?", isPresented: $confirmingReset, titleVisibility: .visible) {
@@ -61,6 +62,9 @@ struct BrewCardView: View {
             }
             .controlSize(.large)
             .padding()
+            #if os(macOS)
+            .frame(maxWidth: 560)   // 넓은 창에서 버튼이 끝까지 늘어나지 않게
+            #endif
         }
         .sheet(isPresented: $finishing) {
             if let bean = brew.bean {
@@ -75,45 +79,51 @@ struct BrewCardView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text(brew.bean?.name ?? "").font(.title2.bold())
-                if brew.isFavorite {
-                    Text("★ 기준 레시피").font(.caption.weight(.semibold))
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(.yellow.opacity(0.25), in: .capsule)
-                }
+                Text(brew.bean?.name ?? "").font(.title2.bold()).foregroundStyle(Color.ink)
+                if brew.isFavorite { Pill(text: "★ 기준 레시피", fill: Color.cherry.opacity(0.18)) }
                 ServingChip(brew: brew)
             }
             let origin = [brew.method, brew.bean?.countryText ?? "", brew.bean?.roastLevel ?? ""].filter { !$0.isEmpty }
-            Text(origin.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary)
-            Text(brew.conditionLine).font(.system(.body, design: .rounded)).monospacedDigit()
+            Text(origin.joined(separator: " · ")).font(.subheadline).foregroundStyle(Color.muted)
+            Text(brew.conditionLine).font(.system(.body, design: .rounded)).monospacedDigit().foregroundStyle(Color.ink)
         }
     }
 
-    @ViewBuilder
+    /// "지금" 패널: 카드 + 왼쪽 3pt brand 바
     private func nowPanel(elapsed: TimeInterval, phase: Int?) -> some View {
+        nowContent(elapsed: elapsed, phase: phase)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardStyle()
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 1.5).fill(Color.brand).frame(width: 3).padding(.vertical, Theme.s12).padding(.leading, 6)
+            }
+    }
+
+    @ViewBuilder
+    private func nowContent(elapsed: TimeInterval, phase: Int?) -> some View {
         if !timer.started {
-            Text("타이머를 시작하면 단계가 순서대로 안내됩니다").foregroundStyle(.secondary)
+            Text("타이머를 시작하면 단계가 순서대로 안내됩니다").foregroundStyle(Color.muted)
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 Text(PourStep.timeString(Int(elapsed)))
-                    .font(.system(size: 56, weight: .semibold, design: .rounded))
+                    .font(.system(size: 56, weight: .semibold, design: .rounded)).foregroundStyle(Color.ink)
                     .accessibilityIdentifier("elapsedTime")
                 if let phase {
                     Text(phase < steps.count ? "지금 · \(phase + 1)차 푸어 → \(target(phase))" : "지금 · 드리퍼 제거 · 추출 종료")
-                        .font(.title3.weight(.semibold))
+                        .font(.title3.weight(.semibold)).foregroundStyle(Color.brand)
                     if phase < steps.count, !steps[phase].note.isEmpty {
-                        Text(steps[phase].note).foregroundStyle(.secondary)
+                        Text(steps[phase].note).foregroundStyle(Color.muted)
                     }
                 } else {
-                    Text("지금 · 대기").font(.title3.weight(.semibold))
+                    Text("지금 · 대기").font(.title3.weight(.semibold)).foregroundStyle(Color.brand)
                 }
                 let next = (phase ?? -1) + 1
                 if next < times.count {
                     let wait = Int((Double(times[next]) - elapsed).rounded(.up))
                     Text("다음 · \(PourStep.timeString(times[next])) → \(target(next)) (\(max(0, wait))초 후)")
-                        .font(.subheadline)
+                        .font(.subheadline).foregroundStyle(Color.ink)
                     if next < steps.count, !steps[next].note.isEmpty {
-                        Text(steps[next].note).font(.subheadline).foregroundStyle(.secondary)
+                        Text(steps[next].note).font(.subheadline).foregroundStyle(Color.muted)
                     }
                 }
             }
@@ -151,10 +161,10 @@ struct BrewCardView: View {
             if state == .done { Image(systemName: "checkmark") }
         }
         .font(.system(.body, design: .rounded)).monospacedDigit()
-        .foregroundStyle(state == .done ? Color.secondary : state == .current ? Color.accentColor : Color.primary)
+        .foregroundStyle(state == .done ? Color.muted : state == .current ? Color.brand : Color.ink)
         .padding(.vertical, 10).padding(.leading, 12)
         .overlay(alignment: .leading) {
-            if state == .current { RoundedRectangle(cornerRadius: 1.5).fill(.tint).frame(width: 3) }
+            if state == .current { RoundedRectangle(cornerRadius: 1.5).fill(Color.brand).frame(width: 3) }
         }
     }
 
@@ -162,8 +172,8 @@ struct BrewCardView: View {
     private var notes: some View {
         if !brew.notes.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
-                Text(brew.notes).lineLimit(notesExpanded ? nil : 2).foregroundStyle(.secondary)
-                Button(notesExpanded ? "접기" : "더 보기") { notesExpanded.toggle() }.font(.subheadline)
+                Text(brew.notes).lineLimit(notesExpanded ? nil : 2).foregroundStyle(Color.muted)
+                Button(notesExpanded ? "접기" : "더 보기") { notesExpanded.toggle() }.font(.subheadline).tint(.brand)
             }
         }
     }
@@ -208,14 +218,12 @@ struct BrewCardView: View {
     func reset() { startDate = nil; accumulated = 0; started = false }
 }
 
-/// HOT(주황) / ICED(시안) 캡슐 태그
+/// HOT(앰버) / ICED(틸) 캡슐 태그
 struct ServingChip: View {
     let brew: Brew
 
     var body: some View {
-        Text(brew.servingLabel).font(.caption.weight(.semibold))
-            .padding(.horizontal, 8).padding(.vertical, 3)
-            .background((brew.isIced ? Color.cyan : .orange).opacity(0.25), in: .capsule)
+        Pill(text: brew.servingLabel, fill: (brew.isIced ? Color.iced : Color.hot).opacity(0.25))
     }
 }
 
