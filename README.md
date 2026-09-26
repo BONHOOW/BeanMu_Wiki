@@ -87,7 +87,7 @@ xcodebuild test -project BeanMuWiki.xcodeproj -scheme BeanMuWiki \
 2. 답변 맨 끝의 ```json 코드블록을 복사합니다.
 3. 앱 목록 화면 상단 **가져오기**(클립보드 아이콘)를 누릅니다. 처음 한 번 iOS가 붙여넣기 허용을 물어보면 허용합니다.
 
-JSON의 `iced`/`iceGrams`로 HOT·ICED를 구분하고(옛 `"V60 ICED"` 표기도 인식), 한 원두에 두 레시피를 함께 넣으면 서빙별 기준 레시피가 각각 만들어집니다. JSON 스키마는 프롬프트의 📦 섹션이 기준이고, 파서는 `BeanMuWiki/Models.swift`의 `BeanImport`입니다. 실제 출력 예시는 `docs/import-example.json`에 있으며, 그대로 복사해 가져오기로 테스트할 수 있습니다. 프롬프트는 하리오 V60 + 홀츠클로츠 E80 그라인더 기준으로 쓰여 있으니 장비가 다르면 "고정 장비 세팅" 부분만 고쳐 쓰면 됩니다.
+JSON의 `iced`/`iceGrams`로 HOT·ICED를 구분하고(옛 `"V60 ICED"` 표기도 인식), 한 원두에 두 레시피를 함께 넣으면 서빙별 기준 레시피가 각각 만들어집니다. JSON 스키마는 프롬프트의 📦 섹션이 기준이고, 파서는 `BeanMuWiki/Models.swift`의 `BeanImport`입니다. 실제 출력 예시는 `docs/import-example.json`에 있으며, 그대로 복사해 가져오기로 테스트할 수 있습니다. 프롬프트는 하리오 V60 + 타임모어 C3S(기준 14클릭) · 홀츠클로츠 E80(기준 35 Step) 두 그라인더 기준, 서빙은 말하지 않으면 ICED로 쓰여 있으니 장비가 다르면 "고정 장비 세팅" 부분만 고쳐 쓰면 됩니다.
 
 ## 구조
 
