@@ -71,15 +71,24 @@ struct BeanListColumn: View {
         }
     }
 
+    /// 싱글 오리진 / 블렌드 섹션. 비어 있는 섹션은 숨긴다 (Mac 사이드바에서 유형을 고르면 한 섹션만 남는다)
+    private var sections: [(title: String, beans: [Bean])] {
+        [("싱글 오리진", filtered.filter { !$0.isBlend }), ("블렌드", filtered.filter(\.isBlend))].filter { !$0.1.isEmpty }
+    }
+
     var body: some View {
         List(selection: $selection) {
-            ForEach(filtered) { bean in
-                NavigationLink(value: bean) { BeanRow(bean: bean) }
-                    .contextMenu { Button("삭제", role: .destructive) { pendingDelete = bean } }
-                    .cardRow()
-            }
-            .onDelete { offsets in
-                for i in offsets { delete(filtered[i]) }
+            ForEach(sections, id: \.title) { section in
+                Section(section.title) {
+                    ForEach(section.beans) { bean in
+                        NavigationLink(value: bean) { BeanRow(bean: bean) }
+                            .contextMenu { Button("삭제", role: .destructive) { pendingDelete = bean } }
+                            .cardRow()
+                    }
+                    .onDelete { offsets in
+                        for i in offsets { delete(section.beans[i]) }
+                    }
+                }
             }
         }
         .cardList()
@@ -115,11 +124,7 @@ struct BeanRow: View {
                     if bean.isBlend { Pill(text: "블렌드", fill: Color.bean.opacity(0.18)) }
                     Spacer(minLength: 0)
                     if !bean.roastLevel.isEmpty {
-                        HStack(spacing: Theme.s4) {
-                            RoastBar(level: bean.roastLevel)
-                            Text(bean.roastLevel)
-                        }
-                        .font(.caption).foregroundStyle(rowMeta).lineLimit(1)
+                        RoastBar(level: bean.roastLevel).help(bean.roastLevel)   // 행에는 바만 (좁은 열에서 글자가 잘린다). 이름은 문서 헤더에
                     }
                 }
                 let origin = [bean.roaster, bean.countryText, bean.region].filter { !$0.isEmpty }
@@ -235,6 +240,10 @@ extension ModelContext {
         for brew in (try? fetch(FetchDescriptor<Brew>())) ?? [] {
             let canonical = canonicalMethod(brew.method)
             if canonical != brew.method { brew.method = canonical; brew.updatedAt = .now }
+        }
+        // 0.8.3: 블렌드 플래그가 생기기 전 원두 — 원산지에 산지가 둘 이상 적혀 있으면 블렌드로 표시
+        for bean in (try? fetch(FetchDescriptor<Bean>())) ?? [] where !bean.isBlend && bean.countryParts.count >= 2 {
+            bean.isBlend = true; bean.updatedAt = .now
         }
     }
 }

@@ -101,6 +101,21 @@ struct ModelTests {
         #expect(bean.brews.first?.method == "칼리타 101")
     }
 
+    @Test func countryPartsSplitsSeparators() {
+        let b = Bean(name: "x"); b.country = "에티오피아, 케냐, 코스타리카"
+        #expect(b.countryParts == ["에티오피아", "케냐", "코스타리카"])
+        b.country = "콜롬비아 · 브라질"; #expect(b.countryParts == ["콜롬비아", "브라질"])
+        b.country = "에티오피아"; #expect(b.countryParts == ["에티오피아"])
+    }
+
+    @Test func legacyMultiCountryBecomesBlend() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let blend = Bean(name: "만추"); blend.country = "에티오피아, 케냐, 코스타리카"; context.insert(blend)
+        let single = Bean(name: "예가체프"); single.country = "에티오피아"; context.insert(single)
+        context.migrateLegacyIced()
+        #expect(blend.isBlend && !single.isBlend)
+    }
+
     @Test func importBlendFlag() throws {
         let container = try makeContainer(); let context = container.mainContext
         let blend = try BeanImport.parse(#"{"bean": {"name": "BLACK", "country": "콜롬비아 · 브라질", "blend": true}}"#).apply(to: context, existing: [])

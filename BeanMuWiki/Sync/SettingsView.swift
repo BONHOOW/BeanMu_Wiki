@@ -22,7 +22,9 @@ struct SettingsView: View {
 
     var body: some View {
         #if os(macOS)
+        // macOS 26의 설정 창은 기본 배경이 반투명(유리)이라 뒤 창이 비친다 → 캔버스 색으로 불투명하게
         form.formStyle(.grouped).frame(width: 480, height: 600).navigationTitle("설정")
+            .containerBackground(Color.canvas, for: .window)
         #else
         NavigationStack {
             form

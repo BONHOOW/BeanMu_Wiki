@@ -15,8 +15,8 @@ final class Bean {
     var process = ""
     var roastLevel = ""   // 로스팅 포인트
     var isBlend = false   // 블렌드(여러 산지 혼합) 여부. 블렌드는 country에 구성 산지를 " · "로 이어 적는다
-    /// "콜롬비아 · 브라질" → ["콜롬비아", "브라질"]. 싱글 오리진은 한 개
-    var countryParts: [String] { country.split(separator: "·").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty } }
+    /// "콜롬비아 · 브라질" / "에티오피아, 케냐" → ["콜롬비아", "브라질"]. 싱글 오리진은 한 개
+    var countryParts: [String] { country.split { $0 == "·" || $0 == "," || $0 == "/" }.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty } }
     var url = ""          // 판매 페이지
     @Attribute(.externalStorage) var photo: Data?   // 패키지 사진 (긴 변 1200px JPEG)
     var cupNotes: [String] = []

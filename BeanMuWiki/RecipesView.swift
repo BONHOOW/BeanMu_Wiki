@@ -54,12 +54,21 @@ struct RecipeListColumn: View {
         beans.flatMap { bean in servings.flatMap { iced in bean.favoriteBrews(iced: iced).map { (bean, $0) } } }
     }
 
+    /// 원두 유형별 섹션 (싱글 오리진 / 블렌드). 비어 있으면 숨김
+    private var sections: [(title: String, items: [(bean: Bean, brew: Brew)])] {
+        [("싱글 오리진", recipes.filter { !$0.bean.isBlend }), ("블렌드", recipes.filter { $0.bean.isBlend })].filter { !$0.1.isEmpty }
+    }
+
     var body: some View {
         List(selection: $selection) {
-            ForEach(recipes, id: \.brew.uuid) { bean, brew in
-                NavigationLink(value: brew) { RecipeCard(bean: bean, brew: brew) }
-                    .contextMenu { Button("기록 삭제", role: .destructive) { pendingDelete = brew } }
-                    .cardRow()
+            ForEach(sections, id: \.title) { section in
+                Section(section.title) {
+                    ForEach(section.items, id: \.brew.uuid) { bean, brew in
+                        NavigationLink(value: brew) { RecipeCard(bean: bean, brew: brew) }
+                            .contextMenu { Button("기록 삭제", role: .destructive) { pendingDelete = brew } }
+                            .cardRow()
+                    }
+                }
             }
         }
         .cardList()
