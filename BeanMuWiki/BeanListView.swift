@@ -222,6 +222,11 @@ extension ModelContext {
             brew.isIced = true
             brew.method = brew.method.replacingOccurrences(of: "ICED", with: "").trimmingCharacters(in: .whitespaces)
         }
+        // 0.7.0: 드리퍼 표기 통일 ("칼리타" → "칼리타 101" 등). 바뀐 기록만 동기화 대상으로
+        for brew in (try? fetch(FetchDescriptor<Brew>())) ?? [] {
+            let canonical = canonicalMethod(brew.method)
+            if canonical != brew.method { brew.method = canonical; brew.updatedAt = .now }
+        }
     }
 }
 
