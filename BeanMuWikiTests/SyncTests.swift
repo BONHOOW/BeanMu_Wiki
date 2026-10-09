@@ -14,7 +14,7 @@ struct SyncTests {
 
     @Test func snapshotRoundTrip() throws {
         let a = try makeContainer(); let ctxA = a.mainContext
-        let bean = Bean(name: "Kenya AA"); bean.roaster = "Fritz"; bean.cupNotes = ["자몽", "흑설탕"]; bean.memo = "m"
+        let bean = Bean(name: "Kenya AA"); bean.roaster = "Fritz"; bean.cupNotes = ["자몽", "흑설탕"]; bean.memo = "m"; bean.isBlend = true
         bean.photo = Data([1, 2, 3]); bean.photoUpdatedAt = t0; ctxA.insert(bean)
         let hot = Brew(); hot.date = t0.addingTimeInterval(-100); hot.doseGrams = 15; hot.waterGrams = 240; hot.waterTempC = 93
         hot.steps = [PourStep(atSeconds: 0, grams: 45, note: "블룸"), PourStep(atSeconds: 165, grams: 240, note: "")]
@@ -34,7 +34,7 @@ struct SyncTests {
         #expect(report.beansAdded == 1 && report.brewsAdded == 2 && report.beansUpdated == 0 && report.brewsUpdated == 0)
         let copy = try #require(try ctxB.fetch(FetchDescriptor<Bean>()).first)
         #expect(copy.uuid == bean.uuid && copy.createdAt ~= bean.createdAt && copy.updatedAt ~= bean.updatedAt)
-        #expect(copy.name == "Kenya AA" && copy.roaster == "Fritz" && copy.cupNotes == ["자몽", "흑설탕"] && copy.memo == "m")
+        #expect(copy.name == "Kenya AA" && copy.roaster == "Fritz" && copy.cupNotes == ["자몽", "흑설탕"] && copy.memo == "m" && copy.isBlend)
         #expect(copy.photo == nil && copy.photoUpdatedAt == nil)   // 사진은 엔진이 따로
         let copyHot = try #require(copy.brews.first { $0.uuid == hot.uuid })
         #expect(copyHot.bean === copy && copyHot.steps == hot.steps && copyHot.ratioText == "1:16" && copyHot.waterTempC == 93 && copyHot.date == hot.date)

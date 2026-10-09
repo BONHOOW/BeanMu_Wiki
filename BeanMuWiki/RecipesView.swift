@@ -51,7 +51,7 @@ struct RecipeListColumn: View {
     private var servings: [Bool] { filter.map { [$0] } ?? [false, true] }
     /// (원두, 기록) 쌍 — 원두 순서 유지
     var recipes: [(bean: Bean, brew: Brew)] {
-        beans.flatMap { bean in servings.compactMap { iced in bean.favoriteBrew(iced: iced).map { (bean, $0) } } }
+        beans.flatMap { bean in servings.flatMap { iced in bean.favoriteBrews(iced: iced).map { (bean, $0) } } }
     }
 
     var body: some View {

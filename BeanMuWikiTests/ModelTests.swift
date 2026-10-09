@@ -50,6 +50,30 @@ struct ModelTests {
         #expect(bean.favoriteBrew === hot2)
     }
 
+    /// 같은 서빙이라도 드리퍼가 다르면 ★가 각각 남는다. 같은 서빙·같은 드리퍼의 ★만 교체된다
+    @Test func favoritePerDripper() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let bean = Bean(name: "A"); context.insert(bean)
+        let v60 = Brew(); context.insert(v60); v60.bean = bean
+        let kalita = Brew(); kalita.method = "칼리타 101"; context.insert(kalita); kalita.bean = bean
+        let v60b = Brew(); v60b.date = .now.addingTimeInterval(60); context.insert(v60b); v60b.bean = bean
+        bean.setFavorite(v60); bean.setFavorite(kalita)
+        #expect(v60.isFavorite && kalita.isFavorite)
+        #expect(bean.favoriteBrews(iced: false).map(\.method) == ["V60", "칼리타 101"])   // 드리퍼 목록 순
+        #expect(bean.favoriteBrew(iced: false) === v60 && bean.favoriteBrew(iced: false, method: "칼리타 101") === kalita)
+        bean.setFavorite(v60b)
+        #expect(!v60.isFavorite && v60b.isFavorite && kalita.isFavorite)
+        #expect(bean.favoriteBrews(iced: true).isEmpty && bean.favoriteBrew(iced: true, method: "V60") == nil)
+    }
+
+    @Test func importBlendFlag() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let blend = try BeanImport.parse(#"{"bean": {"name": "BLACK", "country": "콜롬비아 · 브라질", "blend": true}}"#).apply(to: context, existing: [])
+        #expect(blend.isBlend && blend.country == "콜롬비아 · 브라질")
+        let single = try BeanImport.parse(#"{"bean": {"name": "예가체프"}}"#).apply(to: context, existing: [])
+        #expect(!single.isBlend)
+    }
+
     @Test func templateCopiesRecipeButNotEvaluation() {
         let src = Brew()
         src.method = "칼리타"; src.doseGrams = 20; src.waterGrams = 300; src.waterTempC = 90

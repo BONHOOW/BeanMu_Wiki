@@ -141,13 +141,8 @@ struct BrewFormView: View {
                     TextField("테이스팅 노트 / 레시피 메모", text: $brew.notes, axis: .vertical).lineLimit(4...)
                 }
             }
-            .onChange(of: brew.isIced) { _, iced in
-                // 새 기록만: 서빙을 바꾸면 그 서빙의 기준 레시피로 다시 채운다. 그 서빙의 첫 기록이면 ★
-                guard let bean else { return }
-                let template = bean.favoriteBrew(iced: iced)
-                if let template { brew.copyRecipe(from: template) }
-                brew.isFavorite = template == nil
-            }
+            .onChange(of: brew.isIced) { _, iced in refill(iced: iced, method: brew.method) }
+            .onChange(of: brew.method) { _, method in refill(iced: brew.isIced, method: method) }
             .onChange(of: brew.waterGrams) { waterTyped = brew.waterGrams != brew.steps.last?.grams }
             .onChange(of: brew.steps) { _, new in
                 // 물 총량은 마지막 단계를 따라간다. 사용자가 직접 더 큰 값을 적었으면(바이패스 등) 그대로 둔다.
@@ -183,6 +178,16 @@ struct BrewFormView: View {
             Text(label).font(.caption).foregroundStyle(Color.muted)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// 새 기록만: 서빙·드리퍼를 바꾸면 그 조합의 기준 레시피(없으면 같은 서빙의 다른 드리퍼 기준)로 다시 채운다. 그 조합의 첫 기록이면 ★
+    private func refill(iced: Bool, method: String) {
+        guard let bean else { return }
+        let exact = bean.favoriteBrew(iced: iced, method: method)
+        if let template = exact ?? bean.favoriteBrew(iced: iced) {
+            brew.copyRecipe(from: template); brew.isIced = iced; brew.method = method
+        }
+        brew.isFavorite = exact == nil
     }
 
     /// 행을 지우면 SwiftUI가 사라지는 행을 옛 인덱스로 한 번 더 그린다 → 범위 밖이면 빈 값으로 받아넘긴다 (직접 $brew.steps[i]를 쓰면 크래시)

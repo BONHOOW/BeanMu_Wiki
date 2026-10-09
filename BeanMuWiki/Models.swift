@@ -14,6 +14,9 @@ final class Bean {
     var variety = ""
     var process = ""
     var roastLevel = ""   // 로스팅 포인트
+    var isBlend = false   // 블렌드(여러 산지 혼합) 여부. 블렌드는 country에 구성 산지를 " · "로 이어 적는다
+    /// "콜롬비아 · 브라질" → ["콜롬비아", "브라질"]. 싱글 오리진은 한 개
+    var countryParts: [String] { country.split(separator: "·").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty } }
     var url = ""          // 판매 페이지
     @Attribute(.externalStorage) var photo: Data?   // 패키지 사진 (긴 변 1200px JPEG)
     var cupNotes: [String] = []
@@ -31,15 +34,25 @@ final class Bean {
         brews.first { $0.isFavorite && !$0.isIced } ?? brews.first { $0.isFavorite } ?? brews.max { $0.date < $1.date }
     }
 
-    /// 해당 서빙(HOT/ICED)의 기준 레시피(★), 없으면 그 서빙의 가장 최근 기록
-    func favoriteBrew(iced: Bool) -> Brew? {
+    /// 해당 서빙(HOT/ICED)의 기준 레시피들 — 드리퍼(method)마다 하나씩, 드리퍼 목록 순. ★가 하나도 없으면 그 서빙의 가장 최근 기록 하나
+    func favoriteBrews(iced: Bool) -> [Brew] {
         let same = brews.filter { $0.isIced == iced }
+        let stars = same.filter(\.isFavorite).sorted { methodOrder($0.method) < methodOrder($1.method) }
+        return stars.isEmpty ? same.max { $0.date < $1.date }.map { [$0] } ?? [] : stars
+    }
+
+    /// 해당 서빙의 첫 기준 레시피 (드리퍼 목록 순). 없으면 그 서빙의 가장 최근 기록
+    func favoriteBrew(iced: Bool) -> Brew? { favoriteBrews(iced: iced).first }
+
+    /// 해당 서빙 · 드리퍼의 ★, 없으면 그 조합의 가장 최근 기록
+    func favoriteBrew(iced: Bool, method: String) -> Brew? {
+        let same = brews.filter { $0.isIced == iced && $0.method == method }
         return same.first { $0.isFavorite } ?? same.max { $0.date < $1.date }
     }
 
-    /// brew를 ★로. 같은 서빙의 다른 기록만 ★ 해제 (HOT과 ICED는 기준 레시피가 따로 있다)
+    /// brew를 ★로. 같은 서빙·같은 드리퍼의 다른 기록만 ★ 해제 (HOT/ICED × V60/칼리타 101 … 조합마다 기준 레시피가 따로 있다)
     func setFavorite(_ brew: Brew) {
-        for other in brews where other.isIced == brew.isIced && other !== brew && other.isFavorite {
+        for other in brews where other.isIced == brew.isIced && other.method == brew.method && other !== brew && other.isFavorite {
             other.isFavorite = false; other.updatedAt = .now
         }
         if !brew.isFavorite { brew.isFavorite = true; brew.updatedAt = .now }
@@ -193,7 +206,10 @@ final class Tombstone {
     init(uuid: UUID, kind: String) { self.uuid = uuid; self.kind = kind }
 }
 
-let brewMethods = ["V60", "칼리타", "오리가미", "하리오 스위치", "에어로프레스", "프렌치프레스", "모카포트", "에스프레소", "콜드브루", "기타"]
+let brewMethods = ["V60", "칼리타 101", "칼리타 웨이브", "오리가미", "하리오 스위치", "에어로프레스", "프렌치프레스", "모카포트", "에스프레소", "콜드브루", "기타"]
+
+/// 드리퍼 정렬 순서: 목록에 있는 것 먼저(목록 순), 없는 것은 이름순으로 뒤에
+func methodOrder(_ method: String) -> (Int, String) { (brewMethods.firstIndex(of: method) ?? brewMethods.count, method) }
 
 /// "레몬, 꿀,  " → ["레몬", "꿀"]. 공백 제거, 빈 항목과 중복(existing 포함) 제외.
 func splitCupNotes(_ text: String, excluding existing: [String] = []) -> [String] {
@@ -210,6 +226,7 @@ struct BeanImport: Decodable {
         var name: String
         var roaster, country, region, farm, altitude, variety, process, roastLevel, url, memo: String?
         var cupNotes: [String]?
+        var blend: Bool?
     }
     struct StepDTO: Decodable {
         var at: String?       // "m:ss" 또는 초. 숫자로 와도 문자열로 받는다
@@ -284,6 +301,7 @@ struct BeanImport: Decodable {
         b.variety = canonical(bean.variety, in: BeanOptions.varieties)
         b.process = canonical(bean.process, in: BeanOptions.processes)
         b.roastLevel = canonical(bean.roastLevel, in: BeanOptions.roastLevels)
+        b.isBlend = bean.blend ?? false
         b.url = bean.url ?? ""
         var seen = Set<String>()
         b.cupNotes = (bean.cupNotes ?? []).map { FlavorWheel.canonicalName($0) ?? $0 }.filter { seen.insert($0).inserted }

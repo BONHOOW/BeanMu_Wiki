@@ -5,7 +5,7 @@ import AppKit
 
 /// Mac 루트: 사이드바(색인) · 목록 · 문서 3열. 사이드바가 필터, 가운데가 결과, 오른쪽이 선택한 원두 문서/추출 카드.
 struct MacRootView: View {
-    enum SidebarItem: Hashable { case beans, recipes(Bool?), roaster(String), country(String) }
+    enum SidebarItem: Hashable { case beans, recipes(Bool?), kind(Bool), roaster(String), country(String) }
 
     @Environment(\.modelContext) private var context
     @Environment(\.openSettings) private var openSettings
@@ -22,8 +22,9 @@ struct MacRootView: View {
     private var isRecipes: Bool { if case .recipes = current { true } else { false } }
     private var filteredBeans: [Bean] {
         switch current {
+        case .kind(let blend): beans.filter { $0.isBlend == blend }
         case .roaster(let name): beans.filter { $0.roaster == name }
-        case .country(let name): beans.filter { $0.country == name }
+        case .country(let name): beans.filter { $0.countryParts.contains(name) }   // 블렌드는 구성 산지마다 포함
         default: beans
         }
     }
@@ -32,11 +33,20 @@ struct MacRootView: View {
         case .beans: "전체 원두"
         case .recipes(nil): "레시피"
         case .recipes(let iced?): iced ? "ICED 레시피" : "HOT 레시피"
+        case .kind(let blend): blend ? "블렌드" : "싱글 오리진"
         case .roaster(let name): name
         case .country(let name): flagged(name)
         }
     }
     /// 이름별 원두 수, 많은 순 → 이름 순
+    /// 원산지별 원두 수. 블렌드는 구성 산지마다 센다
+    private var countryCounts: [(name: String, count: Int)] {
+        var tally: [String: Int] = [:]
+        for bean in beans { for part in bean.countryParts { tally[part, default: 0] += 1 } }
+        return tally.map { (name: $0.key, count: $0.value) }
+            .sorted { $0.count != $1.count ? $0.count > $1.count : $0.name < $1.name }
+    }
+
     private func counts(_ key: (Bean) -> String) -> [(name: String, count: Int)] {
         Dictionary(grouping: beans.filter { !key($0).isEmpty }, by: key)
             .map { (name: $0.key, count: $0.value.count) }
@@ -82,13 +92,17 @@ struct MacRootView: View {
                 Label("HOT", systemImage: "flame").badge(recipeCount(false)).tag(SidebarItem.recipes(false))
                 Label("ICED", systemImage: "snowflake").badge(recipeCount(true)).tag(SidebarItem.recipes(true))
             }
+            Section("유형") {
+                Label("싱글 오리진", systemImage: "leaf").badge(beans.filter { !$0.isBlend }.count).tag(SidebarItem.kind(false))
+                Label("블렌드", systemImage: "square.stack.3d.up").badge(beans.filter(\.isBlend).count).tag(SidebarItem.kind(true))
+            }
             let roasters = counts(\.roaster)
             if !roasters.isEmpty {
                 Section("로스터리") {
                     ForEach(roasters, id: \.name) { Label($0.name, systemImage: "storefront").badge($0.count).tag(SidebarItem.roaster($0.name)) }
                 }
             }
-            let countries = counts(\.country)
+            let countries = countryCounts
             if !countries.isEmpty {
                 Section("원산지") {
                     ForEach(countries, id: \.name) { Text(flagged($0.name)).badge($0.count).tag(SidebarItem.country($0.name)) }
@@ -111,7 +125,7 @@ struct MacRootView: View {
 
     private func recipeCount(_ iced: Bool?) -> Int {
         let servings: [Bool] = iced.map { [$0] } ?? [false, true]
-        return beans.reduce(0) { total, bean in total + servings.filter { bean.favoriteBrew(iced: $0) != nil }.count }
+        return beans.reduce(0) { total, bean in total + servings.reduce(0) { $0 + bean.favoriteBrews(iced: $1).count } }
     }
 
     @ViewBuilder private var content: some View {

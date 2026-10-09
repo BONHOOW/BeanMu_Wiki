@@ -15,6 +15,7 @@ struct Snapshot: Codable {
         var uuid: UUID; var createdAt: Date; var updatedAt: Date
         var name, roaster, country, region, farm, altitude, variety, process, roastLevel, url, memo: String
         var cupNotes: [String]
+        var isBlend: Bool?            // 0.7.0 추가. 없으면 false (구 스냅샷 호환)
         var hasPhoto: Bool; var photoUpdatedAt: Date?
         var brews: [BrewDTO]
 
@@ -22,7 +23,7 @@ struct Snapshot: Codable {
             uuid = bean.uuid; createdAt = bean.createdAt; updatedAt = bean.updatedAt
             name = bean.name; roaster = bean.roaster; country = bean.country; region = bean.region; farm = bean.farm
             altitude = bean.altitude; variety = bean.variety; process = bean.process; roastLevel = bean.roastLevel
-            url = bean.url; memo = bean.memo; cupNotes = bean.cupNotes
+            url = bean.url; memo = bean.memo; cupNotes = bean.cupNotes; isBlend = bean.isBlend
             hasPhoto = bean.photo != nil; photoUpdatedAt = bean.photoUpdatedAt
             brews = includeBrews ? bean.brews.sorted { $0.date < $1.date }.map { BrewDTO($0) } : []
         }
@@ -31,7 +32,7 @@ struct Snapshot: Codable {
         func apply(to bean: Bean) {
             bean.name = name; bean.roaster = roaster; bean.country = country; bean.region = region; bean.farm = farm
             bean.altitude = altitude; bean.variety = variety; bean.process = process; bean.roastLevel = roastLevel
-            bean.url = url; bean.memo = memo; bean.cupNotes = cupNotes
+            bean.url = url; bean.memo = memo; bean.cupNotes = cupNotes; bean.isBlend = isBlend ?? false
         }
     }
 

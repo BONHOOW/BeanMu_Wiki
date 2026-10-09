@@ -66,7 +66,17 @@ struct SettingsView: View {
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { importFile($0) }
         .alert("설정", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
         } message: { Text(message ?? "") }
-        .task { prepareShareURL() }
+        .task {
+            prepareShareURL()
+            #if DEBUG
+            // `-debugSignIn`: 클릭 없이 로그인 흐름을 시작하고 결과를 stderr로 (Mac 진단용)
+            if CommandLine.arguments.contains("-debugSignIn"), let engine {
+                try? await Task.sleep(for: .seconds(1.5))
+                do { try await engine.signIn(); debugLog("debugSignIn: OK \(engine.auth.email ?? "")") }
+                catch { debugLog("debugSignIn: FAILED \(error) — \(error.localizedDescription)"); message = error.localizedDescription }
+            }
+            #endif
+        }
     }
 
     @ViewBuilder private var googleRows: some View {
