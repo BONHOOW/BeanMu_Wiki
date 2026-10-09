@@ -3,6 +3,7 @@ import SwiftData
 
 /// iPhone/iPad 원두 탭: 목록 ↔ 문서 2열 (iPhone은 스택). Mac은 MacRootView가 같은 열 뷰를 3열로 조립한다.
 struct BeanListView: View {
+    @Environment(\.syncEngine) private var engine
     @Environment(\.modelContext) private var context
     @Query(sort: \Bean.createdAt, order: .reverse) private var beans: [Bean]
     @State private var selection: Bean?
@@ -15,6 +16,10 @@ struct BeanListView: View {
         NavigationSplitView {
             BeanListColumn(beans: beans, selection: $selection, search: search)
                 .navigationTitle("원두")
+                #if os(iOS)
+                .navigationSubtitle(engine?.statusLine ?? "")          // 자동 동기화 상태가 보이게
+                .refreshable { await engine?.syncNow() }                // 당겨서 지금 동기화
+                #endif
                 .searchable(text: $search, prompt: "원두, 로스터리, 산지")
                 .overlay {
                     if beans.isEmpty {

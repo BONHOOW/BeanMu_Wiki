@@ -3,6 +3,7 @@ import SwiftData
 
 /// iPhone/iPad 레시피 탭: 원두 × 서빙(HOT/ICED)별 기준 레시피(★, 없으면 그 서빙의 최근 기록) 카드 → 추출 카드
 struct RecipesView: View {
+    @Environment(\.syncEngine) private var engine
     @Query(sort: \Bean.createdAt, order: .reverse) private var beans: [Bean]
     @State private var filter: Bool?   // nil = 전체, false = HOT, true = ICED
     @State private var selection: Brew?
@@ -20,6 +21,9 @@ struct RecipesView: View {
                 .padding(.horizontal, Theme.s16).padding(.vertical, Theme.s8)
                 .background(Color.canvas)
                 RecipeListColumn(beans: beans, filter: filter, selection: $selection)
+                #if os(iOS)
+                .refreshable { await engine?.syncNow() }
+                #endif
             }
             .navigationTitle("레시피")
             .navigationSplitViewColumnWidth(min: 300, ideal: 360, max: 480)

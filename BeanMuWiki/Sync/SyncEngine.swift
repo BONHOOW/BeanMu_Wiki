@@ -147,6 +147,19 @@ import UIKit
     }
 }
 
+extension SyncEngine {
+    /// 한 줄 상태 (iOS 목록 부제·Mac 사이드바): "동기화 중…" / "동기화됨 · 3분 전" / "로그인 필요". 미설정이면 nil
+    var statusLine: String? {
+        switch state {
+        case .notConfigured: nil
+        case .syncing: "동기화 중…"
+        case .idle: lastSyncAt.map { "동기화됨 · " + $0.relativeKorean } ?? "아직 동기화 안 됨"
+        case .signedOut: "Google 로그인하면 자동 동기화"
+        case .error(let message): "동기화 오류: " + message
+        }
+    }
+}
+
 // macOS 26: WindowGroup 콘텐츠 클로저가 App 프로퍼티(엔진)를 참조하면 창이 생성되지 않는다.
 // 그래서 씬 수정자 `.environment(\.syncEngine, engine)`로 값 기반 주입만 한다.
 extension EnvironmentValues {

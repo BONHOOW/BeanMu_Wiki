@@ -84,28 +84,27 @@ struct MacRootView: View {
 
     private var sidebar: some View {
         List(selection: $item) {
+            // 라이브러리: 원두 · 레시피(HOT / ICED 하위)
             Section("라이브러리") {
                 Label("전체 원두", systemImage: "cup.and.saucer").badge(beans.count).tag(SidebarItem.beans)
                 Label("레시피", systemImage: "timer").badge(recipeCount(nil)).tag(SidebarItem.recipes(nil))
+                child(Label("HOT", systemImage: "flame").badge(recipeCount(false))).tag(SidebarItem.recipes(false))
+                child(Label("ICED", systemImage: "snowflake").badge(recipeCount(true))).tag(SidebarItem.recipes(true))
             }
-            Section("서빙") {
-                Label("HOT", systemImage: "flame").badge(recipeCount(false)).tag(SidebarItem.recipes(false))
-                Label("ICED", systemImage: "snowflake").badge(recipeCount(true)).tag(SidebarItem.recipes(true))
-            }
-            Section("유형") {
-                Label("싱글 오리진", systemImage: "leaf").badge(beans.filter { !$0.isBlend }.count).tag(SidebarItem.kind(false))
-                Label("블렌드", systemImage: "square.stack.3d.up").badge(beans.filter(\.isBlend).count).tag(SidebarItem.kind(true))
-            }
-            let roasters = counts(\.roaster)
-            if !roasters.isEmpty {
-                Section("로스터리") {
-                    ForEach(roasters, id: \.name) { Label($0.name, systemImage: "storefront").badge($0.count).tag(SidebarItem.roaster($0.name)) }
+            // 원두 색인: 유형 · 로스터리 · 원산지를 소제목 아래 들여쓰기 (전체 원두의 필터)
+            Section("원두 색인") {
+                caption("유형")
+                child(Label("싱글 오리진", systemImage: "leaf").badge(beans.filter { !$0.isBlend }.count)).tag(SidebarItem.kind(false))
+                child(Label("블렌드", systemImage: "square.stack.3d.up").badge(beans.filter(\.isBlend).count)).tag(SidebarItem.kind(true))
+                let roasters = counts(\.roaster)
+                if !roasters.isEmpty {
+                    caption("로스터리")
+                    ForEach(roasters, id: \.name) { r in child(Label(r.name, systemImage: "storefront").badge(r.count)).tag(SidebarItem.roaster(r.name)) }
                 }
-            }
-            let countries = countryCounts
-            if !countries.isEmpty {
-                Section("원산지") {
-                    ForEach(countries, id: \.name) { Text(flagged($0.name)).badge($0.count).tag(SidebarItem.country($0.name)) }
+                let countries = countryCounts
+                if !countries.isEmpty {
+                    caption("원산지")
+                    ForEach(countries, id: \.name) { c in child(Text(flagged(c.name)).badge(c.count)).tag(SidebarItem.country(c.name)) }
                 }
             }
         }
@@ -120,7 +119,16 @@ struct MacRootView: View {
             .font(.caption)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Theme.s12)
+            .background(.bar)   // 투명하면 스크롤된 목록이 푸터 밑으로 비친다
+            .overlay(alignment: .top) { Divider() }
         }
+    }
+
+    /// 사이드바 하위 항목: 한 단계 들여쓰기
+    private func child<V: View>(_ view: V) -> some View { view.padding(.leading, Theme.s24) }
+    /// 선택되지 않는 소제목 행
+    private func caption(_ title: String) -> some View {
+        Text(title).font(.caption.weight(.semibold)).foregroundStyle(.secondary).padding(.top, Theme.s4).selectionDisabled()
     }
 
     private func recipeCount(_ iced: Bool?) -> Int {
