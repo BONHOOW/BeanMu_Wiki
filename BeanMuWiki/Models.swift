@@ -211,6 +211,19 @@ let brewMethods = ["V60", "칼리타 101", "칼리타 웨이브", "오리가미"
 /// 드리퍼 정렬 순서: 목록에 있는 것 먼저(목록 순), 없는 것은 이름순으로 뒤에
 func methodOrder(_ method: String) -> (Int, String) { (brewMethods.firstIndex(of: method) ?? brewMethods.count, method) }
 
+/// 드리퍼 표기 통일: "칼리타"·"Kalita 101"·"하리오 V60" 같은 변형을 목록 이름으로. 모르는 값은 그대로
+func canonicalMethod(_ raw: String) -> String {
+    let key = matchKey(raw)
+    let aliases: [String: String] = [
+        "칼리타": "칼리타 101", "kalita": "칼리타 101", "칼리타101": "칼리타 101", "kalita101": "칼리타 101",
+        "칼리타웨이브": "칼리타 웨이브", "kalitawave": "칼리타 웨이브", "웨이브": "칼리타 웨이브",
+        "v60": "V60", "하리오v60": "V60", "hariov60": "V60", "하리오": "V60",
+        "origami": "오리가미", "switch": "하리오 스위치", "하리오스위치": "하리오 스위치", "aeropress": "에어로프레스",
+    ]
+    if let hit = aliases[key] { return hit }
+    return brewMethods.first { matchKey($0) == key } ?? raw.trimmingCharacters(in: .whitespaces)
+}
+
 /// "레몬, 꿀,  " → ["레몬", "꿀"]. 공백 제거, 빈 항목과 중복(existing 포함) 제외.
 func splitCupNotes(_ text: String, excluding existing: [String] = []) -> [String] {
     var seen = Set(existing)
@@ -271,7 +284,7 @@ struct BeanImport: Decodable {
             let brew = Brew()
             // 구 스키마 호환: "V60 ICED" → ICED + "V60"
             let method = (dto.method ?? "").replacingOccurrences(of: "ICED", with: "", options: .caseInsensitive).trimmingCharacters(in: .whitespaces)
-            brew.method = method.isEmpty ? brewMethods[0] : method
+            brew.method = method.isEmpty ? brewMethods[0] : canonicalMethod(method)
             brew.isIced = dto.iced == true || dto.method?.localizedCaseInsensitiveContains("ICED") == true
             brew.iceGrams = brew.isIced ? dto.iceGrams : nil
             brew.doseGrams = dto.doseGrams

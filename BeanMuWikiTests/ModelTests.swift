@@ -66,6 +66,18 @@ struct ModelTests {
         #expect(bean.favoriteBrews(iced: true).isEmpty && bean.favoriteBrew(iced: true, method: "V60") == nil)
     }
 
+    @Test func canonicalMethodAliases() {
+        #expect(canonicalMethod("칼리타") == "칼리타 101" && canonicalMethod("Kalita 101") == "칼리타 101" && canonicalMethod("칼리타 101") == "칼리타 101")
+        #expect(canonicalMethod("하리오 V60") == "V60" && canonicalMethod("v60") == "V60" && canonicalMethod("Kalita Wave") == "칼리타 웨이브")
+        #expect(canonicalMethod("클레버") == "클레버")   // 모르는 값은 그대로
+    }
+
+    @Test func importCanonicalizesMethod() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let bean = try BeanImport.parse(#"{"bean": {"name": "K"}, "brews": [{"method": "칼리타", "doseGrams": 15, "waterGrams": 225}]}"#).apply(to: context, existing: [])
+        #expect(bean.brews.first?.method == "칼리타 101")
+    }
+
     @Test func importBlendFlag() throws {
         let container = try makeContainer(); let context = container.mainContext
         let blend = try BeanImport.parse(#"{"bean": {"name": "BLACK", "country": "콜롬비아 · 브라질", "blend": true}}"#).apply(to: context, existing: [])
