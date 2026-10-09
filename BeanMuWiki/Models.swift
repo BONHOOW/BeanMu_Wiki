@@ -37,22 +37,22 @@ final class Bean {
     /// 해당 서빙(HOT/ICED)의 기준 레시피들 — 드리퍼(method)마다 하나씩, 드리퍼 목록 순. ★가 하나도 없으면 그 서빙의 가장 최근 기록 하나
     func favoriteBrews(iced: Bool) -> [Brew] {
         let same = brews.filter { $0.isIced == iced }
-        let stars = same.filter(\.isFavorite).sorted { methodOrder($0.method) < methodOrder($1.method) }
+        let stars = same.filter(\.isFavorite).sorted { ($0.methodRank, $0.variant) < ($1.methodRank, $1.variant) }   // 드리퍼 목록 순, 같은 드리퍼면 기본("") 먼저
         return stars.isEmpty ? same.max { $0.date < $1.date }.map { [$0] } ?? [] : stars
     }
 
     /// 해당 서빙의 첫 기준 레시피 (드리퍼 목록 순). 없으면 그 서빙의 가장 최근 기록
     func favoriteBrew(iced: Bool) -> Brew? { favoriteBrews(iced: iced).first }
 
-    /// 해당 서빙 · 드리퍼의 ★, 없으면 그 조합의 가장 최근 기록
-    func favoriteBrew(iced: Bool, method: String) -> Brew? {
-        let same = brews.filter { $0.isIced == iced && $0.method == method }
+    /// 해당 서빙 · 드리퍼 · 변형의 ★, 없으면 그 조합의 가장 최근 기록
+    func favoriteBrew(iced: Bool, method: String, variant: String = "") -> Brew? {
+        let same = brews.filter { $0.isIced == iced && $0.method == method && $0.variant == variant }
         return same.first { $0.isFavorite } ?? same.max { $0.date < $1.date }
     }
 
-    /// brew를 ★로. 같은 서빙·같은 드리퍼의 다른 기록만 ★ 해제 (HOT/ICED × V60/칼리타 101 … 조합마다 기준 레시피가 따로 있다)
+    /// brew를 ★로. 같은 서빙·드리퍼·변형의 다른 기록만 ★ 해제 (HOT/ICED × V60/칼리타 101 × 기본/연하게 … 조합마다 기준 레시피가 따로 있다)
     func setFavorite(_ brew: Brew) {
-        for other in brews where other.isIced == brew.isIced && other.method == brew.method && other !== brew && other.isFavorite {
+        for other in brews where other.isIced == brew.isIced && other.method == brew.method && other.variant == brew.variant && other !== brew && other.isFavorite {
             other.isFavorite = false; other.updatedAt = .now
         }
         if !brew.isFavorite { brew.isFavorite = true; brew.updatedAt = .now }
@@ -119,6 +119,7 @@ final class Brew {
     var rating = 3        // 0 = 아직 안 마셔봄
     var notes = ""
     var isFavorite = false
+    var variant = ""      // 변형 이름 (예: "연하게", "여자친구용"). 비면 기본. ★는 서빙 × 드리퍼 × 변형마다 하나
     var bean: Bean?
     var uuid = UUID()             // 기기 간 동일성 (동기화)
     var updatedAt = Date.now      // 마지막 수정 시각. LWW 병합 기준 — 필드를 바꾸면 갱신할 것
@@ -130,12 +131,18 @@ final class Brew {
 
     /// 레시피 값만 복사 (날짜·평가·★·노트 제외)
     func copyRecipe(from t: Brew) {
-        method = t.method; isIced = t.isIced
+        method = t.method; isIced = t.isIced; variant = t.variant
         doseGrams = t.doseGrams; waterGrams = t.waterGrams; iceGrams = t.iceGrams; waterTempC = t.waterTempC
         grind = t.grind; time = t.time; steps = t.steps
     }
 
     var servingLabel: String { isIced ? "ICED" : "HOT" }
+    /// 드리퍼 목록 순서 (없는 드리퍼는 뒤)
+    var methodRank: Int { brewMethods.firstIndex(of: method) ?? brewMethods.count }
+    /// "V60 · 연하게" (변형이 없으면 "V60")
+    var methodVariantLabel: String { variant.isEmpty ? method : "\(method) · \(variant)" }
+    /// 드리퍼별 실사용 원두량 상한 (컵 스케일 경고용). 칼리타 101은 1~2인용이라 18g, 나머지는 V60 02 기준 30g
+    var doseCap: Double { method == "칼리타 101" ? 18 : 30 }
 
     /// 브루 비율 "1:16" (원두 : 브루잉 워터)
     var ratioText: String? { ratioText(water: waterGrams) }
@@ -260,6 +267,7 @@ struct BeanImport: Decodable {
         var rating: Int?
         var isFavorite, iced: Bool?
         var steps: [StepDTO]?
+        var variant: String?
     }
     var bean: BeanDTO
     var brews: [BrewDTO]?
@@ -297,6 +305,7 @@ struct BeanImport: Decodable {
             brew.time = dto.time ?? ""
             brew.notes = dto.notes ?? ""
             brew.rating = dto.rating ?? 0
+            brew.variant = (dto.variant ?? "").trimmingCharacters(in: .whitespaces)
             if dto.isFavorite ?? false { target.setFavorite(brew) }
             context.insert(brew)
             brew.bean = target

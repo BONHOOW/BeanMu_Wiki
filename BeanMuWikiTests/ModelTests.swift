@@ -66,6 +66,29 @@ struct ModelTests {
         #expect(bean.favoriteBrews(iced: true).isEmpty && bean.favoriteBrew(iced: true, method: "V60") == nil)
     }
 
+    /// 같은 서빙·드리퍼라도 변형 이름이 다르면 ★가 각각 남는다 (기본 + "연하게")
+    @Test func favoritePerVariant() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let bean = Bean(name: "만추"); context.insert(bean)
+        let base = Brew(); base.isIced = true; base.doseGrams = 20; context.insert(base); base.bean = bean
+        let light = Brew(); light.isIced = true; light.doseGrams = 15; light.variant = "연하게"; context.insert(light); light.bean = bean
+        bean.setFavorite(base); bean.setFavorite(light)
+        #expect(base.isFavorite && light.isFavorite)
+        #expect(bean.favoriteBrews(iced: true).map(\.variant) == ["", "연하게"])   // 기본 먼저
+        #expect(bean.favoriteBrew(iced: true, method: "V60", variant: "연하게") === light && bean.favoriteBrew(iced: true, method: "V60") === base)
+        let light2 = Brew(); light2.isIced = true; light2.variant = "연하게"; context.insert(light2); light2.bean = bean
+        bean.setFavorite(light2)
+        #expect(!light.isFavorite && light2.isFavorite && base.isFavorite)
+        #expect(Brew(template: light2).variant == "연하게")   // 템플릿 복사에 변형 포함
+    }
+
+    @Test func importVariant() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let bean = try BeanImport.parse(#"{"bean": {"name": "만추"}, "brews": [{"method": "칼리타 101", "iced": true, "doseGrams": 15, "waterGrams": 180, "iceGrams": 120, "variant": " 여자친구용 ", "isFavorite": true}, {"method": "칼리타 101", "iced": true, "doseGrams": 20, "waterGrams": 180, "iceGrams": 120, "isFavorite": true}]}"#).apply(to: context, existing: [])
+        #expect(bean.brews.filter(\.isFavorite).count == 2)   // 변형이 달라 둘 다 ★
+        #expect(bean.brews.contains { $0.variant == "여자친구용" && $0.doseGrams == 15 })
+    }
+
     @Test func canonicalMethodAliases() {
         #expect(canonicalMethod("칼리타") == "칼리타 101" && canonicalMethod("Kalita 101") == "칼리타 101" && canonicalMethod("칼리타 101") == "칼리타 101")
         #expect(canonicalMethod("하리오 V60") == "V60" && canonicalMethod("v60") == "V60" && canonicalMethod("Kalita Wave") == "칼리타 웨이브")

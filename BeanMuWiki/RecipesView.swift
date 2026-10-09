@@ -89,6 +89,7 @@ private struct RecipeCard: View {
                 Spacer(minLength: 0)
                 if brew.isFavorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(Color.cherry) }
                 ServingChip(brew: brew)
+                if !brew.variant.isEmpty { Pill(text: brew.variant) }
             }
             Text(brew.conditionLine).font(.subheadline).fontDesign(.rounded).monospacedDigit().foregroundStyle(rowTitle)
             let summary = [bean.countryText.isEmpty ? nil : bean.countryText, brew.method,

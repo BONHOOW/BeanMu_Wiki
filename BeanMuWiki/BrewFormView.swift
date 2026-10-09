@@ -138,6 +138,10 @@ struct BrewFormView: View {
                         }
                     }
                     Toggle("기준 레시피", isOn: $brew.isFavorite).tint(.cta)
+                    LabeledContent("변형 이름") {
+                        TextField("예: 연하게 · 여자친구용", text: $brew.variant).multilineTextAlignment(.trailing)
+                            .accessibilityIdentifier("variantField")
+                    }
                     TextField("테이스팅 노트 / 레시피 메모", text: $brew.notes, axis: .vertical).lineLimit(4...)
                 }
             }
@@ -183,9 +187,10 @@ struct BrewFormView: View {
     /// 새 기록만: 서빙·드리퍼를 바꾸면 그 조합의 기준 레시피(없으면 같은 서빙의 다른 드리퍼 기준)로 다시 채운다. 그 조합의 첫 기록이면 ★
     private func refill(iced: Bool, method: String) {
         guard let bean else { return }
-        let exact = bean.favoriteBrew(iced: iced, method: method)
+        let variant = brew.variant
+        let exact = bean.favoriteBrew(iced: iced, method: method, variant: variant)
         if let template = exact ?? bean.favoriteBrew(iced: iced) {
-            brew.copyRecipe(from: template); brew.isIced = iced; brew.method = method
+            brew.copyRecipe(from: template); brew.isIced = iced; brew.method = method; brew.variant = variant
         }
         brew.isFavorite = exact == nil
     }

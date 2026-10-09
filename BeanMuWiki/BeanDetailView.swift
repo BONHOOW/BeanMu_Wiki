@@ -195,7 +195,7 @@ struct BeanDetailView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 4) {
                                         if fav.isFavorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(Color.cherry) }
-                                        Text("\(fav.method) · \(fav.isFavorite ? "기준 레시피" : "최근 기록")").font(.headline)
+                                        Text("\(fav.methodVariantLabel) · \(fav.isFavorite ? "기준 레시피" : "최근 기록")").font(.headline)
                                         ServingChip(brew: fav)
                                     }
                                     Text(fav.conditionLine).font(.caption).foregroundStyle(Color.muted)
@@ -208,7 +208,7 @@ struct BeanDetailView: View {
                             .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityIdentifier((iced ? "openBrewCardIced" : "openBrewCard") + (index == 0 ? "" : "-\(fav.method)"))
+                        .accessibilityIdentifier((iced ? "openBrewCardIced" : "openBrewCard") + (index == 0 ? "" : "-\(fav.methodVariantLabel)"))
                         Divider().overlay(Color.hairline)
                     }
                 }

@@ -91,6 +91,7 @@ struct BrewCardView: View {
                 Text(brew.bean?.name ?? "").font(.title2.bold()).foregroundStyle(Color.ink)
                 if brew.isFavorite { Pill(text: "★ 기준 레시피", fill: Color.cherry.opacity(0.18)) }
                 ServingChip(brew: brew)
+                if !brew.variant.isEmpty { Pill(text: brew.variant) }
             }
             let origin = [brew.method, brew.bean?.countryText ?? "", brew.bean?.roastLevel ?? ""].filter { !$0.isEmpty }
             Text(origin.joined(separator: " · ")).font(.subheadline).foregroundStyle(Color.muted)
@@ -122,8 +123,10 @@ struct BrewCardView: View {
                 let dose = plan.doseGrams ?? 0
                 Text("\(cupML)ml → 음료 \((plan.totalGrams ?? 0).gramsText) · 원두 \(dose.gramsText)")
                     .font(.subheadline).monospacedDigit().foregroundStyle(Color.muted)
-                if dose > 30 {
-                    Text("V60 02는 30g 넘기면 드로우다운이 늘어집니다 — 두 번 나눠 내리세요").font(.caption).foregroundStyle(Color.cherry)
+                if dose > brew.doseCap {
+                    Text(brew.method == "칼리타 101" ? "칼리타 101은 18g 넘기면 수위가 필터 위로 올라옵니다 — 두 번 나눠 내리거나 102를 쓰세요"
+                                                     : "V60 02는 30g 넘기면 드로우다운이 늘어집니다 — 두 번 나눠 내리세요")
+                        .font(.caption).foregroundStyle(Color.cherry)
                 } else if brew.isIced, iceFill == .full {
                     Text("얼음이 가득이면 예상보다 더 녹습니다 — 얼음 5:5(진하게) 레시피가 맞습니다").font(.caption).foregroundStyle(Color.muted)
                 }

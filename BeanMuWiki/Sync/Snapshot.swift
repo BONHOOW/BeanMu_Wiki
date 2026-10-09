@@ -42,13 +42,14 @@ struct Snapshot: Codable {
         var doseGrams, waterGrams, iceGrams: Double?; var waterTempC: Int?
         var grind, time, notes: String; var rating: Int; var isFavorite: Bool
         var steps: [PourStep]
+        var variant: String?          // 0.8.0 추가. 없으면 "" (구 스냅샷 호환)
 
         init(_ brew: Brew) {
             uuid = brew.uuid; updatedAt = brew.updatedAt; date = brew.date
             method = brew.method; isIced = brew.isIced
             doseGrams = brew.doseGrams; waterGrams = brew.waterGrams; iceGrams = brew.iceGrams; waterTempC = brew.waterTempC
             grind = brew.grind; time = brew.time; notes = brew.notes; rating = brew.rating; isFavorite = brew.isFavorite
-            steps = brew.steps
+            steps = brew.steps; variant = brew.variant
         }
 
         /// uuid·updatedAt 제외
@@ -56,7 +57,7 @@ struct Snapshot: Codable {
             brew.date = date; brew.method = method; brew.isIced = isIced
             brew.doseGrams = doseGrams; brew.waterGrams = waterGrams; brew.iceGrams = iceGrams; brew.waterTempC = waterTempC
             brew.grind = grind; brew.time = time; brew.notes = notes; brew.rating = rating; brew.isFavorite = isFavorite
-            brew.steps = steps
+            brew.steps = steps; brew.variant = variant ?? ""
         }
     }
 

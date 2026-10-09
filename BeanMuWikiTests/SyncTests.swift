@@ -19,7 +19,7 @@ struct SyncTests {
         let hot = Brew(); hot.date = t0.addingTimeInterval(-100); hot.doseGrams = 15; hot.waterGrams = 240; hot.waterTempC = 93
         hot.steps = [PourStep(atSeconds: 0, grams: 45, note: "블룸"), PourStep(atSeconds: 165, grams: 240, note: "")]
         ctxA.insert(hot); hot.bean = bean
-        let iced = Brew(); iced.date = t0; iced.isIced = true; iced.iceGrams = 100; iced.rating = 5; ctxA.insert(iced); iced.bean = bean
+        let iced = Brew(); iced.date = t0; iced.isIced = true; iced.iceGrams = 100; iced.rating = 5; iced.variant = "연하게"; ctxA.insert(iced); iced.bean = bean
         bean.setFavorite(iced)
         let stone = Tombstone(uuid: UUID(), kind: "brew"); ctxA.insert(stone)
 
@@ -35,6 +35,7 @@ struct SyncTests {
         let copy = try #require(try ctxB.fetch(FetchDescriptor<Bean>()).first)
         #expect(copy.uuid == bean.uuid && copy.createdAt ~= bean.createdAt && copy.updatedAt ~= bean.updatedAt)
         #expect(copy.name == "Kenya AA" && copy.roaster == "Fritz" && copy.cupNotes == ["자몽", "흑설탕"] && copy.memo == "m" && copy.isBlend)
+        #expect(try #require(copy.brews.first { $0.isIced }).variant == "연하게")
         #expect(copy.photo == nil && copy.photoUpdatedAt == nil)   // 사진은 엔진이 따로
         let copyHot = try #require(copy.brews.first { $0.uuid == hot.uuid })
         #expect(copyHot.bean === copy && copyHot.steps == hot.steps && copyHot.ratioText == "1:16" && copyHot.waterTempC == 93 && copyHot.date == hot.date)
