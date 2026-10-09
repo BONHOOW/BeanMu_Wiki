@@ -41,7 +41,7 @@
 
 원두 편집 화면(배지 피커): `docs/screenshots/05-bean-form.png`
 
-앱 아이콘 후보 비교: `docs/screenshots/icon-candidates.png`
+앱 아이콘: **Bookmark Bean** — 원두에 꽂힌 책갈피(기록해 둔 항목으로서의 원두). 마스터 SVG·변형·가이드는 `docs/logo/`.
 
 ## 요구 사항
 
