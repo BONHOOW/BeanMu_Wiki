@@ -88,7 +88,10 @@ struct BeanDetailView: View {
     private var header: some View {
         let image = bean.photo.flatMap(Image.init(data:))
         let text = VStack(alignment: .leading, spacing: Theme.s8) {
-            Text(bean.name).font(.title.bold())
+            HStack(alignment: .firstTextBaseline, spacing: Theme.s8) {
+                Text(bean.name).font(.title.bold())
+                if bean.isBlend { Pill(text: "블렌드", fill: Color.bean.opacity(0.18)) }
+            }
             let meta = [bean.roaster, bean.countryText, bean.region].filter { !$0.isEmpty }
             if !meta.isEmpty { Text(meta.joined(separator: " · ")).font(.subheadline).foregroundStyle(Color.muted) }
             if !bean.roastLevel.isEmpty {
@@ -183,16 +186,16 @@ struct BeanDetailView: View {
                 #endif
         } content: {
             VStack(alignment: .leading, spacing: 0) {
-                // 서빙(HOT/ICED)별 추출 카드 열기
+                // 서빙(HOT/ICED) × 드리퍼별 기준 레시피 → 추출 카드 열기
                 ForEach([false, true], id: \.self) { iced in
-                    if let fav = bean.favoriteBrew(iced: iced) {
+                    ForEach(Array(bean.favoriteBrews(iced: iced).enumerated()), id: \.element.uuid) { index, fav in
                         NavigationLink { BrewCardView(brew: fav) } label: {
                             HStack(spacing: Theme.s12) {
                                 Image(systemName: "timer").foregroundStyle(Color.brand)
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 4) {
                                         if fav.isFavorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(Color.cherry) }
-                                        Text(fav.isFavorite ? "\(fav.servingLabel) 기준 레시피" : "\(fav.servingLabel) 최근 기록").font(.headline)
+                                        Text("\(fav.method) · \(fav.isFavorite ? "기준 레시피" : "최근 기록")").font(.headline)
                                         ServingChip(brew: fav)
                                     }
                                     Text(fav.conditionLine).font(.caption).foregroundStyle(Color.muted)
@@ -205,7 +208,7 @@ struct BeanDetailView: View {
                             .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityIdentifier(iced ? "openBrewCardIced" : "openBrewCard")
+                        .accessibilityIdentifier((iced ? "openBrewCardIced" : "openBrewCard") + (index == 0 ? "" : "-\(fav.method)"))
                         Divider().overlay(Color.hairline)
                     }
                 }

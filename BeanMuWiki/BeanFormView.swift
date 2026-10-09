@@ -25,11 +25,16 @@ struct BeanFormView: View {
                 Section("원두") {
                     field("원두명", $bean.name, prompt: "예: 에티오피아 예가체프 G1").accessibilityIdentifier("nameField")
                     field("로스터리", $bean.roaster, prompt: "예: 프릳츠").accessibilityIdentifier("roasterField")
+                    Picker("유형", selection: $bean.isBlend) {
+                        Text("싱글 오리진").tag(false)
+                        Text("블렌드").tag(true)
+                    }
+                    .pickerStyle(.segmented).accessibilityIdentifier("beanTypePicker")
                     OptionPickerRow(title: "로스팅 포인트", value: $bean.roastLevel, groups: BeanOptions.roastLevels, id: "roast", ownColor: true)
                     field("판매 페이지 URL", $bean.url, prompt: "https://").urlField()
                 }
-                Section("원산지") {
-                    OptionPickerRow(title: "원산지 (국가)", value: $bean.country, groups: BeanOptions.countries, id: "country")
+                Section {
+                    OptionPickerRow(title: bean.isBlend ? "구성 산지" : "원산지 (국가)", value: $bean.country, groups: BeanOptions.countries, id: "country")
                     field("산지 / 재배지", $bean.region, prompt: "예: 예가체프 코체레")
                     field("농장", $bean.farm, prompt: "예: 바나코 워시드 스테이션")
                     #if os(macOS)
@@ -39,6 +44,10 @@ struct BeanFormView: View {
                     #endif
                     OptionPickerRow(title: "품종", value: $bean.variety, groups: BeanOptions.varieties, id: "variety")
                     OptionPickerRow(title: "가공 방식", value: $bean.process, groups: BeanOptions.processes, id: "process")
+                } header: {
+                    Text("원산지")
+                } footer: {
+                    if bean.isBlend { Text("블렌드는 구성 산지를 \"콜롬비아 · 브라질\"처럼 \" · \"로 이어 직접 입력하고, 품종·가공은 대표 구성 기준으로 적습니다.") }
                 }
                 // 사진은 원산지 뒤: 첫 화면에 이름·로스터리·원산지가 다 보이도록 (UI 테스트도 이 순서를 가정)
                 Section("패키지 사진") { photoSection }

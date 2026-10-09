@@ -71,13 +71,19 @@ nonisolated enum AuthError: LocalizedError {
         ]
         let callback: URL = try await withCheckedThrowingContinuation { continuation in
             let session = ASWebAuthenticationSession(url: components.url!, callback: .customScheme(GoogleConfig.scheme)) { url, error in
+                #if DEBUG
+                debugLog("ASWebAuth callback url=\(url?.absoluteString.prefix(60) ?? "nil") error=\(String(describing: error))")
+                #endif
                 if let url { continuation.resume(returning: url) }
                 else if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin { continuation.resume(throwing: AuthError.cancelled) }
                 else { continuation.resume(throwing: error ?? AuthError.missingCode) }
             }
             session.prefersEphemeralWebBrowserSession = false
             session.presentationContextProvider = anchor
-            session.start()
+            let started = session.start()
+            #if DEBUG
+            debugLog("ASWebAuth start=\(started) canStart=\(session.canStart) scheme=\(GoogleConfig.scheme) anchorWindows=\(Anchor.windowCount)")
+            #endif
         }
         guard let code = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value else {
             throw AuthError.missingCode
@@ -143,8 +149,27 @@ nonisolated enum AuthError: LocalizedError {
     }
 }
 
+#if DEBUG
+/// 진단용: stderr + <컨테이너>/tmp/debug.log (open으로 실행하면 stderr를 못 보므로)
+func debugLog(_ text: String) {
+    let line = Data((text + "\n").utf8)
+    FileHandle.standardError.write(line)
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("debug.log")
+    if let h = try? FileHandle(forWritingTo: url) { h.seekToEndOfFile(); h.write(line); try? h.close() } else { try? line.write(to: url) }
+}
+#endif
+
 /// ASWebAuthenticationSession을 띄울 창
 final class Anchor: NSObject, ASWebAuthenticationPresentationContextProviding {
+    #if DEBUG
+    static var windowCount: Int {
+        #if os(macOS)
+        NSApp.windows.count
+        #else
+        0
+        #endif
+    }
+    #endif
     func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
         #if os(macOS)
         NSApp.keyWindow ?? NSApp.windows.first ?? NSWindow()

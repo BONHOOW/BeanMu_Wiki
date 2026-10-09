@@ -112,6 +112,7 @@ struct BeanRow: View {
             VStack(alignment: .leading, spacing: Theme.s4) {
                 HStack(alignment: .firstTextBaseline, spacing: Theme.s8) {
                     Text(bean.name).font(.headline).foregroundStyle(rowTitle).lineLimit(2)
+                    if bean.isBlend { Pill(text: "블렌드", fill: Color.bean.opacity(0.18)) }
                     Spacer(minLength: 0)
                     if !bean.roastLevel.isEmpty {
                         HStack(spacing: Theme.s4) {
@@ -265,6 +266,13 @@ extension ModelContext {
         old.method = "에어로프레스"; old.doseGrams = 14; old.waterGrams = 200; old.waterTempC = 88
         old.time = "1:30"; old.rating = 3; old.notes = "단맛은 좋은데 향이 덜 남"
         insert(old); old.bean = bean
+        let blend = Bean(name: "BLACK 블렌드")
+        blend.roaster = "프릳츠"; blend.isBlend = true
+        blend.country = "콜롬비아 · 브라질 · 에티오피아"; blend.process = "워시드"; blend.roastLevel = "미디엄 다크"
+        blend.cupNotes = ["다크초콜릿", "견과", "흑설탕"]
+        blend.memo = "에스프레소·라떼 겸용 블렌드. 드립은 1:15에 92℃로 묵직하게."
+        insert(blend)
+
         return bean
     }
 }
