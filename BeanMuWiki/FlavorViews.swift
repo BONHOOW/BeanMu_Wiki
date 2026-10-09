@@ -213,6 +213,30 @@ struct FlavorChips: View {
     }
 }
 
+/// 로스팅 바: 로스팅 포인트(라이트 … 베리 다크)를 5칸 바로. 칸 색은 그 단계의 원두색, 빈 칸은 cardTint.
+/// 목록에 없는 표기면 아무것도 그리지 않는다 (호출 쪽에서 텍스트만).
+struct RoastBar: View {
+    let level: String
+    var height: CGFloat = 6
+
+    private static let order = BeanOptions.roastLevels.flatMap(\.options).map(\.name)   // 라이트 → 베리 다크
+    private var index: Int? { Self.order.firstIndex(of: level) }
+
+    var body: some View {
+        if let index {
+            let filled = Int((Double(index + 1) / Double(Self.order.count) * 5).rounded(.up))   // 7단계 → 5칸
+            let color = BeanOptions.option(named: level, in: BeanOptions.roastLevels)?.color ?? .bean
+            HStack(spacing: 3) {
+                ForEach(0..<5, id: \.self) { i in
+                    Capsule().fill(i < filled ? color : Color.cardTint).frame(height: height)
+                }
+            }
+            .frame(width: 5 * 12 + 4 * 3)
+            .accessibilityLabel("로스팅 \(level)")
+        }
+    }
+}
+
 /// 목록 행용 색 점 묶음 (최대 8개).
 struct FlavorDots: View {
     let tags: [String]

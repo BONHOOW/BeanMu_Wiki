@@ -96,7 +96,7 @@ struct BeanDetailView: View {
             if !meta.isEmpty { Text(meta.joined(separator: " · ")).font(.subheadline).foregroundStyle(Color.muted) }
             if !bean.roastLevel.isEmpty {
                 HStack(spacing: 6) {
-                    OptionBadge(value: bean.roastLevel, groups: BeanOptions.roastLevels, ownColor: true)
+                    RoastBar(level: bean.roastLevel)
                     Text(bean.roastLevel).font(.caption.weight(.semibold))
                 }
                 .padding(.horizontal, Theme.s8).padding(.vertical, 3)

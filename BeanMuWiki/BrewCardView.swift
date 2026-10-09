@@ -168,12 +168,22 @@ struct BrewCardView: View {
                 }
                 let next = (phase ?? -1) + 1
                 if next < times.count {
-                    let wait = Int((Double(times[next]) - elapsed).rounded(.up))
-                    Text("다음 · \(PourStep.timeString(times[next])) → \(target(next)) (\(max(0, wait))초 후)")
-                        .font(.subheadline).foregroundStyle(Color.ink)
+                    let wait = max(0, Int((Double(times[next]) - elapsed).rounded(.up)))
+                    let start = Double(phase.map { times[$0] } ?? 0), end = Double(times[next])
+                    let progress = end > start ? min(1, max(0, (elapsed - start) / (end - start))) : 1
+                    // 다음 단계: 남은 초가 가장 큰 숫자, 그 아래 목표와 메모. 진행 바는 지금 단계가 얼마나 지났는지
+                    HStack(alignment: .firstTextBaseline, spacing: Theme.s8) {
+                        Text("\(wait)").font(.system(size: 34, weight: .bold, design: .rounded)).foregroundStyle(wait <= 5 ? Color.cherry : Color.ink)
+                            .contentTransition(.numericText(countsDown: true)).animation(.default, value: wait)
+                        Text("초 후 · \(PourStep.timeString(times[next])) → \(target(next))").font(.subheadline).foregroundStyle(Color.ink)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("다음 \(PourStep.timeString(times[next])) \(target(next)) \(wait)초 후")
                     if next < steps.count, !steps[next].note.isEmpty {
                         Text(steps[next].note).font(.subheadline).foregroundStyle(Color.muted)
                     }
+                    ProgressView(value: progress).tint(.brand).padding(.top, Theme.s4)
+                        .accessibilityHidden(true)
                 }
             }
             .font(.system(.body, design: .rounded)).monospacedDigit()

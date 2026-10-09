@@ -116,7 +116,7 @@ struct BeanRow: View {
                     Spacer(minLength: 0)
                     if !bean.roastLevel.isEmpty {
                         HStack(spacing: Theme.s4) {
-                            OptionBadge(value: bean.roastLevel, groups: BeanOptions.roastLevels, ownColor: true)
+                            RoastBar(level: bean.roastLevel)
                             Text(bean.roastLevel)
                         }
                         .font(.caption).foregroundStyle(rowMeta).lineLimit(1)
