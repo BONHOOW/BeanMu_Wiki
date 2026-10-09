@@ -12,11 +12,12 @@ struct BrewCardView: View {
 
     @State private var cupML: Int?            // nil = 레시피 그대로
     @State private var iceFill = IceFill.full
+    @State private var strength = Strength.normal
 
-    /// 컵을 고르면 비율은 그대로, 양만 곱한 사본을 본다 (타이머·단계표·기록 생성이 전부 이걸 읽는다)
+    /// 컵(양)과 농도를 적용한 사본을 본다 (타이머·단계표·기록 생성이 전부 이걸 읽는다). 컵은 비율 유지, 농도는 원두만 조정
     private var plan: Brew {
-        guard let cupML else { return brew }
-        return brew.scaled(toTotal: Double(cupML) * (brew.isIced ? iceFill.factor : 1))
+        let sized = cupML.map { brew.scaled(toTotal: Double($0) * (brew.isIced ? iceFill.factor : 1)) } ?? brew
+        return strength == .normal ? sized : sized.withDose(factor: strength.factor, variant: strength.variant)
     }
     private var steps: [PourStep] { plan.steps }
     private var endSeconds: Int? {
@@ -91,7 +92,7 @@ struct BrewCardView: View {
                 Text(brew.bean?.name ?? "").font(.title2.bold()).foregroundStyle(Color.ink)
                 if brew.isFavorite { Pill(text: "★ 기준 레시피", fill: Color.cherry.opacity(0.18)) }
                 ServingChip(brew: brew)
-                if !brew.variant.isEmpty { Pill(text: brew.variant) }
+                if !plan.variant.isEmpty { Pill(text: plan.variant) }
             }
             let origin = [brew.method, brew.bean?.countryText ?? "", brew.bean?.roastLevel ?? ""].filter { !$0.isEmpty }
             Text(origin.joined(separator: " · ")).font(.subheadline).foregroundStyle(Color.muted)
@@ -114,6 +115,17 @@ struct BrewCardView: View {
                 }
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("iceFillPicker")
+            }
+            // 농도: 원두만 바꾼다 (연하게 ×0.75 = GPT '연하게' 버전과 같은 규칙). 기록하기를 누르면 변형 이름이 붙어 별도 ★로 남는다
+            Picker("농도", selection: $strength) {
+                ForEach(Strength.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("strengthPicker")
+            if strength != .normal, let dose = plan.doseGrams {
+                let ratio = [plan.ratioText, plan.isIced ? plan.finalRatioText.map { "최종 " + $0 } : nil].compactMap { $0 }.joined(separator: " · ")
+                Text("원두 \(dose.gramsText) → \(ratio). 물·얼음·분쇄·온도는 그대로 — \(strength == .light ? "떫으면 한 눈금 굵게" : "텁텁하면 한 눈금 가늘게")")
+                    .font(.caption).foregroundStyle(Color.muted)
             }
             if cupML != nil, brew.totalGrams == nil {
                 Text(brew.isIced ? "이 레시피엔 얼음 g가 없어 컵 계산을 못 합니다 — 기록을 편집해 얼음 g를 넣으세요"
@@ -260,6 +272,14 @@ struct BrewCardView: View {
         keepScreenAwake(false)
         finishing = brew.bean != nil
     }
+}
+
+/// 농도 프리셋: 원두량 배율. 연하게 0.75 (20g→15g, 1:9→1:12), 진하게 1.2 (20g→24g)
+enum Strength: CaseIterable {
+    case normal, light, strong
+    var label: String { switch self { case .normal: "기본"; case .light: "연하게"; case .strong: "진하게" } }
+    var factor: Double { switch self { case .normal: 1; case .light: 0.75; case .strong: 1.2 } }
+    var variant: String { switch self { case .normal: ""; case .light: "연하게"; case .strong: "진하게" } }
 }
 
 /// 컵에 얼음을 얼마나 채우는지 → 실제 음료가 차지하는 비율. 얼음 가득이면 액체는 컵의 60%쯤이다.

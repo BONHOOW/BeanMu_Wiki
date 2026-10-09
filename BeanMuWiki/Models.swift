@@ -181,6 +181,25 @@ final class Brew {
         return copy
     }
 
+    /// 농도 프리셋: **원두만** 곱하고 물·얼음·시각·온도·분쇄는 그대로 둔 사본 (저장되지 않음).
+    /// 블룸은 원두 대비 같은 비율로 다시 잡고, 중간 푸어는 블룸~최종 사이 간격을 유지해 재배치한다. 마지막 단계 g = 물.
+    /// GPT가 "연하게" 버전을 만들 때 쓴 규칙과 같다: 20g·180g(1:9) → 15g·180g(1:12), 분쇄·온도 유지.
+    /// 비율을 바꾸면 추출률도 바뀌므로 큰 폭(×0.6 이하, ×1.4 이상)은 분쇄·온도를 다시 맞추는 편이 맞다 — 그건 GPT 모드 B.
+    func withDose(factor: Double, variant: String) -> Brew {
+        guard let dose = doseGrams, dose > 0, factor > 0, factor != 1 else { return self }
+        let copy = Brew(template: self)
+        copy.doseGrams = (dose * factor * 2).rounded() / 2
+        copy.variant = variant
+        guard steps.count >= 2, let bloom = steps.first?.grams, let final = steps.last?.grams, final > bloom else { return copy }
+        let newBloom = min(final, (bloom * factor).rounded())
+        let scale = (final - newBloom) / (final - bloom)
+        copy.steps = steps.enumerated().map { i, s in
+            let grams = i == 0 ? newBloom : i == steps.count - 1 ? s.grams : (newBloom + (s.grams - bloom) * scale).rounded()
+            return PourStep(atSeconds: s.atSeconds, grams: grams, note: s.note)
+        }
+        return copy
+    }
+
     /// 자유 텍스트에서 첫 "얼음 110g" / "얼음 120 g" → 110. 없으면 nil
     static func iceGrams(in texts: [String]) -> Double? {
         for text in texts {

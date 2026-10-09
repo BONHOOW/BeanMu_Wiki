@@ -170,6 +170,22 @@ struct ModelTests {
         #expect(noIce.scaled(toTotal: 355) === noIce)
     }
 
+    /// 농도 프리셋: 원두만 ×0.75, 물·얼음·시각 유지, 블룸은 원두 비율대로, 중간 푸어는 간격 유지, 변형 이름 부여
+    @Test func withDoseLightKeepsWaterAndRespacesPours() {
+        let brew = Brew()
+        brew.isIced = true; brew.doseGrams = 20; brew.waterGrams = 180; brew.iceGrams = 120; brew.waterTempC = 93; brew.grind = "E80 35"
+        brew.steps = [.init(atSeconds: 0, grams: 50, note: "블룸"), .init(atSeconds: 40, grams: 115, note: ""), .init(atSeconds: 80, grams: 180, note: "")]
+        let light = brew.withDose(factor: 0.75, variant: "연하게")
+        #expect(light !== brew && light.doseGrams == 15 && light.waterGrams == 180 && light.iceGrams == 120)
+        #expect(light.steps.map(\.grams) == [38, 109, 180] && light.steps.map(\.atSeconds) == [0, 40, 80])
+        #expect(light.ratioText == "1:12" && light.finalRatioText == "1:20" && light.variant == "연하게")
+        #expect(light.waterTempC == 93 && light.grind == "E80 35")
+        #expect(brew.doseGrams == 20 && brew.steps[0].grams == 50)   // 원본 불변
+        #expect(brew.withDose(factor: 1, variant: "x") === brew)      // 배율 1은 자기 자신
+        let strong = brew.withDose(factor: 1.2, variant: "진하게")
+        #expect(strong.doseGrams == 24 && strong.steps.map(\.grams) == [60, 120, 180])   // 블룸 60, 중간은 60 + 65×(120/130)
+    }
+
     /// 메모·단계에 글자로만 있는 얼음 g를 필드로 옮긴다. 이미 있으면 안 건드리고, HOT은 대상이 아니다
     @Test func fillIceGramsFromNotes() throws {
         #expect(Brew.iceGrams(in: ["센터 푸어 · 컵 얼음 110g 준비"]) == 110)
