@@ -63,6 +63,57 @@ struct ModelTests {
         #expect(copy.rating == 3 && copy.notes == "" && copy.isFavorite == false)
     }
 
+    /// 컵 스케일: 비율 유지, 마지막 단계 g = 물, 시각·온도는 그대로, 원본은 안 건드린다
+    @Test func scaledKeepsRatioAndStepInvariant() {
+        let brew = Brew()
+        brew.isIced = true; brew.doseGrams = 20; brew.waterGrams = 180; brew.iceGrams = 120; brew.waterTempC = 94; brew.time = "2:15"
+        brew.steps = [.init(atSeconds: 0, grams: 50, note: "블룸"), .init(atSeconds: 40, grams: 115, note: ""), .init(atSeconds: 80, grams: 180, note: "")]
+
+        let big = brew.scaled(toTotal: 591 * 0.6)          // 591 텀블러, 얼음 가득 → 음료 355g
+        #expect(big !== brew)
+        #expect(big.doseGrams == 23.5)                       // 23.67 → 0.5g 단위
+        #expect(big.steps.map(\.grams) == [59, 136, 213])
+        #expect(big.waterGrams == 213)                       // 마지막 단계와 같아야 한다
+        #expect(big.iceGrams == 142)
+        #expect(big.finalRatioText == "1:15.1")              // 반올림 오차만
+        #expect(big.steps.map(\.atSeconds) == [0, 40, 80])
+        #expect(big.time == "2:15" && big.waterTempC == 94)
+        #expect(brew.doseGrams == 20 && brew.waterGrams == 180)   // 원본 불변
+
+        let hot = Brew(); hot.doseGrams = 15; hot.waterGrams = 240
+        hot.steps = [.init(atSeconds: 0, grams: 45, note: ""), .init(atSeconds: 45, grams: 240, note: "")]
+        let hotBig = hot.scaled(toTotal: 355)
+        #expect(hotBig.doseGrams == 22)
+        #expect(hotBig.waterGrams == 355 && hotBig.steps.last?.grams == 355)
+        #expect(hotBig.iceGrams == nil)
+
+        let empty = Brew()
+        #expect(empty.scaled(toTotal: 355) === empty)        // 스케일 불가면 자기 자신
+
+        // ICED인데 얼음 g가 없으면 총량을 모른다 → 농축액을 컵 크기로 늘리지 않고 그대로 둔다 (37.5g 버그)
+        let noIce = Brew(); noIce.isIced = true; noIce.doseGrams = 20; noIce.waterGrams = 190
+        #expect(noIce.totalGrams == nil)
+        #expect(noIce.scaled(toTotal: 355) === noIce)
+    }
+
+    /// 메모·단계에 글자로만 있는 얼음 g를 필드로 옮긴다. 이미 있으면 안 건드리고, HOT은 대상이 아니다
+    @Test func fillIceGramsFromNotes() throws {
+        #expect(Brew.iceGrams(in: ["센터 푸어 · 컵 얼음 110g 준비"]) == 110)
+        #expect(Brew.iceGrams(in: ["블룸", "얼음 120 g 위에 부어 칠링"]) == 120)
+        #expect(Brew.iceGrams(in: ["얼음 없이", "물 180g"]) == nil)
+
+        let container = try makeContainer(); let context = container.mainContext
+        let bean = Bean(name: "페루"); context.insert(bean)
+        let legacy = Brew(); legacy.isIced = true; legacy.waterGrams = 190
+        legacy.steps = [.init(atSeconds: 105, grams: 190, note: "센터 푸어 · 컵 얼음 110g 준비")]; legacy.bean = bean
+        let already = Brew(); already.isIced = true; already.waterGrams = 180; already.iceGrams = 120; already.notes = "얼음 999g"; already.bean = bean
+        let hot = Brew(); hot.waterGrams = 240; hot.notes = "얼음 50g"; hot.bean = bean
+        context.fillIceGramsFromNotes()
+        #expect(legacy.iceGrams == 110)
+        #expect(already.iceGrams == 120)
+        #expect(hot.iceGrams == nil)
+    }
+
     @Test func finalRatioText() {
         let brew = Brew()
         brew.doseGrams = 20; brew.waterGrams = 180

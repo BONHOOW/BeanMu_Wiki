@@ -279,6 +279,30 @@ final class UserJourneyTests: XCTestCase {
         XCTAssertTrue(element(containing: "최종 1:15").exists)
     }
 
+    /// 추출 카드 컵 피커: 591 텀블러 + 얼음 가득 → 음료·원두가 비율대로 늘고 5:5 안내, 얼음 없이 채우면 30g 상한 경고, 타이머가 돌면 잠긴다
+    func testCupPickerScalesRecipe() {
+        app.launchArguments.append("-seed")
+        app.launch()
+        tab("레시피").tap()
+        let icedCard = elements(containing: "에티오피아", "ICED").firstMatch
+        XCTAssertTrue(icedCard.waitForExistence(timeout: 5))
+        icedCard.tap()
+        XCTAssertTrue(app.buttons["startTimer"].waitForExistence(timeout: 3))
+        XCTAssertTrue(element(containing: "얼음 120g").exists)          // 레시피 그대로
+
+        app.segmentedControls.buttons["591"].tap()
+        XCTAssertTrue(element(containing: "591ml → 음료").waitForExistence(timeout: 3))
+        XCTAssertTrue(element(containing: "얼음 5:5").exists)             // 가득(기본) 안내
+        XCTAssertTrue(element(containing: "얼음 142g").exists)            // 120 × (591×0.6 ÷ 300) = 142 — 비율 유지
+        XCTAssertFalse(element(containing: "얼음 120g").exists)
+
+        app.segmentedControls.buttons["레시피 얼음만"].tap()
+        XCTAssertTrue(element(containing: "두 번 나눠").waitForExistence(timeout: 3))   // 591g 음료 → 원두 39.5g > 30g
+
+        app.buttons["startTimer"].tap()
+        XCTAssertFalse(app.segmentedControls.buttons["355"].isEnabled)   // 추출 중엔 컵 변경 잠금
+    }
+
     /// 상세의 "★ ICED 기준 레시피" 행 → 추출 카드(얼음 표시) → 뒤로 → 기록 추가: HOT ★로 채워진 폼에서 ICED로 바꾸면
     /// ICED ★로 다시 채워지고(원두 20g·얼음 120g) 최종 비율 1:15 → 저장 → 상세에 ICED 기록이 늘어난다
     func testIcedRecordFromDetail() {

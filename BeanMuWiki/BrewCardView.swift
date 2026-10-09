@@ -10,7 +10,15 @@ struct BrewCardView: View {
     @State private var finishing = false
     @State private var confirmingReset = false
 
-    private var steps: [PourStep] { brew.steps }
+    @State private var cupML: Int?            // nil = 레시피 그대로
+    @State private var iceFill = IceFill.full
+
+    /// 컵을 고르면 비율은 그대로, 양만 곱한 사본을 본다 (타이머·단계표·기록 생성이 전부 이걸 읽는다)
+    private var plan: Brew {
+        guard let cupML else { return brew }
+        return brew.scaled(toTotal: Double(cupML) * (brew.isIced ? iceFill.factor : 1))
+    }
+    private var steps: [PourStep] { plan.steps }
     private var endSeconds: Int? {
         guard let end = PourStep.seconds(from: brew.time), end > (steps.last?.atSeconds ?? -1) else { return nil }
         return end
@@ -25,6 +33,7 @@ struct BrewCardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     header
+                    cupPicker
                     nowPanel(elapsed: elapsed, phase: phase)
                     stepList(phase: phase)
                     notes
@@ -68,7 +77,7 @@ struct BrewCardView: View {
         }
         .sheet(isPresented: $finishing) {
             if let bean = brew.bean {
-                BrewFormView(bean: bean, template: brew, measuredTime: PourStep.timeString(Int(timer.elapsed(at: .now))))
+                BrewFormView(bean: bean, template: plan, measuredTime: PourStep.timeString(Int(timer.elapsed(at: .now))))
             }
         }
         .onDisappear { keepScreenAwake(false) }
@@ -85,9 +94,46 @@ struct BrewCardView: View {
             }
             let origin = [brew.method, brew.bean?.countryText ?? "", brew.bean?.roastLevel ?? ""].filter { !$0.isEmpty }
             Text(origin.joined(separator: " · ")).font(.subheadline).foregroundStyle(Color.muted)
-            Text(brew.conditionLine).font(.system(.body, design: .rounded)).monospacedDigit().foregroundStyle(Color.ink)
+            Text(plan.conditionLine).font(.system(.body, design: .rounded)).monospacedDigit().foregroundStyle(Color.ink)
         }
     }
+
+    /// 컵 용량 + 얼음 정도 → 원두·물·얼음·단계 g를 비율 그대로 곱한다. 타이머가 돌기 시작하면 잠근다.
+    private var cupPicker: some View {
+        VStack(alignment: .leading, spacing: Theme.s8) {
+            Picker("컵", selection: $cupML) {
+                Text("레시피").tag(Int?.none)
+                ForEach(BrewCardView.cupPresets, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("cupPicker")
+            if cupML != nil, brew.isIced {
+                Picker("얼음", selection: $iceFill) {
+                    ForEach(IceFill.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("iceFillPicker")
+            }
+            if cupML != nil, brew.totalGrams == nil {
+                Text(brew.isIced ? "이 레시피엔 얼음 g가 없어 컵 계산을 못 합니다 — 기록을 편집해 얼음 g를 넣으세요"
+                                 : "물 양이 없는 레시피는 컵 계산을 못 합니다")
+                    .font(.caption).foregroundStyle(Color.cherry)
+            } else if let cupML {
+                let dose = plan.doseGrams ?? 0
+                Text("\(cupML)ml → 음료 \((plan.totalGrams ?? 0).gramsText) · 원두 \(dose.gramsText)")
+                    .font(.subheadline).monospacedDigit().foregroundStyle(Color.muted)
+                if dose > 30 {
+                    Text("V60 02는 30g 넘기면 드로우다운이 늘어집니다 — 두 번 나눠 내리세요").font(.caption).foregroundStyle(Color.cherry)
+                } else if brew.isIced, iceFill == .full {
+                    Text("얼음이 가득이면 예상보다 더 녹습니다 — 얼음 5:5(진하게) 레시피가 맞습니다").font(.caption).foregroundStyle(Color.muted)
+                }
+            }
+        }
+        .disabled(timer.started)
+    }
+
+    /// 자주 쓰는 컵 (ml). 직접 입력은 필요해지면 추가
+    static let cupPresets = [355, 473, 591]
 
     /// "지금" 패널: 카드 + 왼쪽 3pt brand 바
     private func nowPanel(elapsed: TimeInterval, phase: Int?) -> some View {
@@ -201,6 +247,13 @@ struct BrewCardView: View {
         keepScreenAwake(false)
         finishing = brew.bean != nil
     }
+}
+
+/// 컵에 얼음을 얼마나 채우는지 → 실제 음료가 차지하는 비율. 얼음 가득이면 액체는 컵의 60%쯤이다.
+enum IceFill: CaseIterable {
+    case recipeOnly, some, full
+    var label: String { switch self { case .recipeOnly: "레시피 얼음만"; case .some: "보통"; case .full: "가득" } }
+    var factor: Double { switch self { case .recipeOnly: 1.0; case .some: 0.75; case .full: 0.6 } }
 }
 
 /// 스톱워치. 경과 시간을 시각으로 계산하므로 탭 전환·백그라운드에도 어긋나지 않는다.

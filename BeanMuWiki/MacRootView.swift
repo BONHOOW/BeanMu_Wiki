@@ -62,7 +62,7 @@ struct MacRootView: View {
             if let bean, !filteredBeans.contains(bean) { self.bean = nil }
         }
         .task {
-            context.migrateLegacyIced(); Snapshot.repairIdentity(in: context)
+            context.migrateLegacyIced(); context.fillIceGramsFromNotes(); Snapshot.repairIdentity(in: context)
             #if DEBUG
             if let seeded = context.seedIfNeeded(beansEmpty: beans.isEmpty) { bean = seeded }
             await debugHooks()

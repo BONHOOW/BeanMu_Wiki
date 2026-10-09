@@ -39,7 +39,7 @@ struct BeanListView: View {
                 .sheet(isPresented: $showingForm) { BeanFormView() }
                 .sheet(isPresented: $showingSettings) { SettingsView() }
                 .importErrorAlert($importError)
-                .task { context.migrateLegacyIced(); Snapshot.repairIdentity(in: context) }
+                .task { context.migrateLegacyIced(); context.fillIceGramsFromNotes(); Snapshot.repairIdentity(in: context) }
                 #if DEBUG
                 .task { context.seedIfNeeded(beansEmpty: beans.isEmpty) }
                 #endif
@@ -214,6 +214,15 @@ extension ModelContext {
         insert(Tombstone(uuid: brew.uuid, kind: "brew"))
         delete(brew)
     }
+    /// 구 프롬프트로 가져온 ICED 기록은 얼음이 `iceGrams` 없이 메모·단계에 "얼음 110g"처럼 글자로만 있다 → 필드로 옮긴다.
+    /// 컵 스케일·최종 비율이 이 필드를 쓴다. 양쪽 기기가 각자 돌리므로 updatedAt은 건드리지 않는다(migrateLegacyIced와 같은 방식).
+    func fillIceGramsFromNotes() {
+        let iced = (try? fetch(FetchDescriptor<Brew>(predicate: #Predicate { $0.isIced && $0.iceGrams == nil }))) ?? []
+        for brew in iced {
+            if let grams = Brew.iceGrams(in: [brew.notes] + brew.steps.map(\.note)) { brew.iceGrams = grams }
+        }
+    }
+
     /// 0.4.0 이전에 method "V60 ICED"로 저장된 기록을 ICED 서빙으로 옮긴다. 대상이 없으면 아무 일도 안 함.
     func migrateLegacyIced() {
         let legacy = (try? fetch(FetchDescriptor<Brew>(predicate: #Predicate { $0.method.contains("ICED") }))) ?? []

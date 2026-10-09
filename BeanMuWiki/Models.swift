@@ -139,6 +139,36 @@ final class Brew {
         return "1:" + (water / doseGrams).formatted(.number.precision(.fractionLength(0...1)))
     }
 
+    /// 최종 음료량(HOT = 물, ICED = 물 + 얼음). 물이 없거나 ICED인데 얼음 g가 없으면 nil — 얼음을 0으로 치면 농축액을 컵 크기로 늘려 버린다
+    var totalGrams: Double? {
+        guard let waterGrams else { return nil }
+        guard isIced else { return waterGrams }
+        guard let iceGrams else { return nil }
+        return waterGrams + iceGrams
+    }
+
+    /// 컵 용량에 맞춰 **비율은 그대로 두고 양만 곱한** 사본. 저장되지 않고, 시각·온도·분쇄도는 그대로다.
+    /// 반올림: 단계 g는 정수, 얼음 정수, 원두 0.5g. 물은 마지막 단계 g로 다시 맞춰 `waterGrams == steps.last.grams`를 지킨다.
+    /// 스케일할 수 없으면(물 없음, 0 이하) 자기 자신을 돌려준다.
+    func scaled(toTotal target: Double) -> Brew {
+        guard let total = totalGrams, total > 0, target > 0 else { return self }
+        let k = target / total
+        let copy = Brew(template: self)
+        copy.steps = steps.map { PourStep(atSeconds: $0.atSeconds, grams: ($0.grams * k).rounded(), note: $0.note) }
+        copy.waterGrams = copy.steps.last?.grams ?? waterGrams.map { ($0 * k).rounded() }
+        copy.iceGrams = isIced ? iceGrams.map { ($0 * k).rounded() } : nil
+        copy.doseGrams = doseGrams.map { ($0 * k * 2).rounded() / 2 }
+        return copy
+    }
+
+    /// 자유 텍스트에서 첫 "얼음 110g" / "얼음 120 g" → 110. 없으면 nil
+    static func iceGrams(in texts: [String]) -> Double? {
+        for text in texts {
+            if let m = text.firstMatch(of: /얼음\s*(\d+(?:\.\d+)?)\s*g/), let g = Double(m.1), g > 0 { return g }
+        }
+        return nil
+    }
+
     /// "5단계 · 0:00 45g → 2:45 240g"
     var stepsSummary: String? {
         guard let first = steps.first, let last = steps.last else { return nil }
