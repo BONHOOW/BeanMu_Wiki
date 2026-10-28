@@ -232,6 +232,16 @@ struct ModelTests {
         #expect(brew.stepsSummary == "1단계 · 0:00 45.5g")   // 한 단계면 화살표 없음
     }
 
+    @Test func memoAttributedKeepsLayoutAndBold() {
+        let memo = "**🧭 설계 의도**\n• 목표\n  • 하위 항목".memoAttributed
+        #expect(String(memo.characters) == "🧭 설계 의도\n• 목표\n  • 하위 항목")   // 줄바꿈·들여쓰기·불릿 유지, ** 제거
+        #expect(memo.runs.first?.inlinePresentationIntent == .stronglyEmphasized)
+        #expect(String("물 *많이*".memoAttributed.characters) == "물 많이")
+        #expect(String("a\n\nb".memoAttributed.characters) == "a\n\nb")   // 섹션 사이 빈 줄 유지
+        let legacy = "🧭 설계 의도: 1:16, C3S 15클릭 · E80 36 Step, 93°C\n[준비] 필터 린싱 — 떫으면 한 눈금 굵게"
+        #expect(String(legacy.memoAttributed.characters) == legacy)   // 옛 메모는 그대로
+    }
+
     @Test func pageURLAddsScheme() {
         let bean = Bean()
         #expect(bean.pageURL == nil)

@@ -54,6 +54,7 @@ import UIKit
 
     private func scheduleSync() {
         guard !isSyncing else { return }   // 동기화 자신의 save는 무시
+        Self.pendingUpload = true
         debounce?.cancel()
         debounce = Task { [weak self] in
             try? await Task.sleep(for: .seconds(5))
@@ -92,14 +93,21 @@ import UIKit
         state = .signedOut
     }
 
+    /// 로컬 save가 있었는데 아직 올리지 못했다는 표식. updatedAt 비교만으로는 과거 시각이 찍힌 데이터
+    /// (백업 파일 가져오기)를 놓치므로 — 실측 2026-10-28: 가져온 레시피가 하루 넘게 Drive에 안 올라감
+    private static var pendingUpload: Bool {
+        get { UserDefaults.standard.bool(forKey: "sync.pendingUpload") }
+        set { UserDefaults.standard.set(newValue, forKey: "sync.pendingUpload") }
+    }
+
     /// 목록 → (원격 있으면) 내려받아 병합 → 사진 → (로컬 변경이 있으면) 병합 결과 업로드.
-    /// dirty = 마지막 동기화 이후 로컬 변경. 원격만 바뀐 경우는 병합만 하고 올리지 않는다
+    /// dirty = 마지막 동기화 이후 로컬 save 또는 변경 시각. 원격만 바뀐 경우는 병합만 하고 올리지 않는다
     private func sync(retry: Bool) async throws {
         let started = Date.now
         let files = try await drive.listAppData()
         let file = files["beanmuwiki.json"]
         let before = try Snapshot.make(from: context)
-        let dirty = before.latestChange > (lastSyncAt ?? .distantPast)
+        let dirty = Self.pendingUpload || before.latestChange > (lastSyncAt ?? .distantPast)
         if file?.modifiedTime == remoteModifiedTime, !dirty { return }
         var remote: Snapshot?
         if let file {
@@ -113,6 +121,7 @@ import UIKit
             let data = try Snapshot.make(from: context).encoded()   // 사진 동기화로 바뀐 photoUpdatedAt 반영
             let up = try await drive.upload(name: "beanmuwiki.json", existingID: file?.id, data: data, mimeType: "application/json")
             remoteModifiedTime = up.modifiedTime
+            Self.pendingUpload = false
         } else {
             remoteModifiedTime = file?.modifiedTime
         }

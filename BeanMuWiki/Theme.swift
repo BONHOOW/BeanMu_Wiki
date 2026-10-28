@@ -67,6 +67,13 @@ extension View {
     }
 }
 
+extension String {
+    /// 메모·노트 표시용: `**굵게**` 같은 인라인 마크다운만 해석하고 줄바꿈·들여쓰기·`• `는 그대로 둔다 (ChatGPT_Prompt.md memo 서식)
+    var memoAttributed: AttributedString {
+        (try? AttributedString(markdown: self, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(self)
+    }
+}
+
 /// 라벨용 캡슐 배지 (Claude badge-pill). fill 기본은 cardTint, 강조는 hot/iced/cherry 등 20% 워시.
 struct Pill: View {
     let text: String

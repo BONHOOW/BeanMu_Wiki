@@ -243,7 +243,7 @@ struct BrewCardView: View {
     private var notes: some View {
         if !brew.notes.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
-                Text(brew.notes).lineLimit(notesExpanded ? nil : 2).foregroundStyle(Color.muted)
+                Text(brew.notes.memoAttributed).lineLimit(notesExpanded ? nil : 2).foregroundStyle(Color.muted)
                 Button(notesExpanded ? "접기" : "더 보기") { notesExpanded.toggle() }.font(.subheadline).tint(.brand)
             }
         }

@@ -49,7 +49,7 @@ struct BeanDetailView: View {
                 if !infoRows.isEmpty || bean.pageURL != nil { infobox }
                 if !bean.memo.isEmpty {
                     card("메모") {
-                        Text(bean.memo).lineSpacing(4).textSelection(.enabled)
+                        Text(bean.memo.memoAttributed).lineSpacing(4).textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading).padding(Theme.s16)
                     }
                 }
@@ -294,7 +294,7 @@ private struct BrewRow: View {
                 Text(summary).font(.caption).foregroundStyle(Color.muted).lineLimit(1)
             }
             if !brew.notes.isEmpty {
-                Text(brew.notes).font(.caption).foregroundStyle(Color.muted).lineLimit(2)
+                Text(brew.notes.memoAttributed).font(.caption).foregroundStyle(Color.muted).lineLimit(2)
             }
         }
         .padding(.horizontal, Theme.s12).padding(.vertical, 10)
