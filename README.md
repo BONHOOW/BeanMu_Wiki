@@ -23,21 +23,25 @@
 
 ## 화면
 
-| 원두 목록 | 원두 문서 | 추출 기록 (푸어 단계) | 플레이버 피커 |
-|---|---|---|---|
-| ![목록](docs/screenshots/01-list.png) | ![상세](docs/screenshots/02-detail.png) | ![기록](docs/screenshots/03-brew-steps.png) | ![피커](docs/screenshots/04-flavor-picker.png) |
+<table>
+<tr><th>원두 목록</th><th>원두 문서</th><th>추출 기록 (푸어 단계)</th><th>플레이버 피커</th></tr>
+<tr><td><img src="docs/screenshots/01-list.png" width="200" alt="원두 목록"></td><td><img src="docs/screenshots/02-detail.png" width="200" alt="원두 문서"></td><td><img src="docs/screenshots/03-brew-steps.png" width="200" alt="추출 기록 (푸어 단계)"></td><td><img src="docs/screenshots/04-flavor-picker.png" width="200" alt="플레이버 피커"></td></tr>
+</table>
 
-| 레시피 탭 (HOT / ICED) | 추출 카드 (ICED) | 기록 폼 (ICED) | 원산지 피커 (국기) |
-|---|---|---|---|
-| ![레시피](docs/screenshots/07-recipes.png) | ![추출 카드](docs/screenshots/08-brew-card.png) | ![ICED 폼](docs/screenshots/09-brew-form-iced.png) | ![국가](docs/screenshots/06-country-picker.png) |
+<table>
+<tr><th>레시피 탭 (HOT / ICED)</th><th>추출 카드 (ICED)</th><th>기록 폼 (ICED)</th><th>원산지 피커 (국기)</th></tr>
+<tr><td><img src="docs/screenshots/07-recipes.png" width="200" alt="레시피 탭 (HOT / ICED)"></td><td><img src="docs/screenshots/08-brew-card.png" width="200" alt="추출 카드 (ICED)"></td><td><img src="docs/screenshots/09-brew-form-iced.png" width="200" alt="기록 폼 (ICED)"></td><td><img src="docs/screenshots/06-country-picker.png" width="200" alt="원산지 피커 (국기)"></td></tr>
+</table>
 
-| Mac — 원두 문서 (3열) | Mac — 레시피 목록 / 추출 카드 |
-|---|---|
-| ![Mac 원두](docs/screenshots/10-mac-beans.png) | ![Mac 레시피](docs/screenshots/11-mac-recipes.png) |
+<table>
+<tr><th>Mac — 원두 문서 (3열)</th><th>Mac — 레시피 목록 / 추출 카드</th></tr>
+<tr><td><img src="docs/screenshots/10-mac-beans.png" width="420" alt="Mac — 원두 문서 (3열)"></td><td><img src="docs/screenshots/11-mac-recipes.png" width="420" alt="Mac — 레시피 목록 / 추출 카드"></td></tr>
+</table>
 
-| Mac — 기록 폼 (숫자 헤더) | Mac — 다크 모드 |
-|---|---|
-| ![Mac 기록 폼](docs/screenshots/12-mac-brew-form.png) | ![Mac 다크](docs/screenshots/13-mac-beans-dark.png) |
+<table>
+<tr><th>Mac — 기록 폼 (숫자 헤더)</th><th>Mac — 다크 모드</th></tr>
+<tr><td><img src="docs/screenshots/12-mac-brew-form.png" width="420" alt="Mac — 기록 폼 (숫자 헤더)"></td><td><img src="docs/screenshots/13-mac-beans-dark.png" width="420" alt="Mac — 다크 모드"></td></tr>
+</table>
 
 원두 편집 화면(배지 피커): `docs/screenshots/05-bean-form.png`
 
