@@ -152,9 +152,10 @@ struct BeanRow: View {
             image.resizable().scaledToFill()
                 .frame(width: 56, height: 56).clipShape(.rect(cornerRadius: Theme.chip))
         } else {
+            // 사진 없는 원두 = 은은한 원두색 타일 + 앱 로고 마크 (첫 글자 대신, 모든 행이 같은 모양)
             RoundedRectangle(cornerRadius: Theme.chip).fill(Color.bean.opacity(0.15))
                 .frame(width: 56, height: 56)
-                .overlay { Text(String(bean.name.prefix(1))).font(.title3.weight(.semibold)).foregroundStyle(Color.bean) }
+                .overlay { Image("BeanMark").resizable().scaledToFit().padding(12).foregroundStyle(Color.bean) }
         }
     }
 }
