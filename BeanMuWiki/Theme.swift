@@ -79,9 +79,10 @@ struct Pill: View {
     let text: String
     var fill: Color = .cardTint
     var foreground: Color = .ink
+    var font: Font = .caption.weight(.semibold)
 
     var body: some View {
-        Text(text).font(.caption.weight(.semibold))
+        Text(text).font(font)
             .padding(.horizontal, Theme.s8).padding(.vertical, 3)
             .background(fill, in: .capsule)
             .foregroundStyle(foreground)

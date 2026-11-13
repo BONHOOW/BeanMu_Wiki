@@ -90,7 +90,7 @@ struct RecipeListColumn: View {
     }
 }
 
-/// 레시피 카드: 원두명 + 서빙 칩 + ★ · 조건 한 줄(숫자) · 방식/단계 요약 · 플레이버 도트
+/// 레시피 카드: 원두명 + 서빙 칩 + ★ · 라벨 붙은 조건 줄 · 그라인더 칩 · 방식/단계 요약 · 플레이버 도트
 private struct RecipeCard: View {
     let bean: Bean
     let brew: Brew
@@ -104,7 +104,15 @@ private struct RecipeCard: View {
                 ServingChip(brew: brew)
                 if !brew.variant.isEmpty { Pill(text: brew.variant) }
             }
-            Text(brew.conditionLine).font(.subheadline).fontDesign(.rounded).monospacedDigit().foregroundStyle(rowTitle)
+            // 라벨은 흐리게, 값은 굵게 — 점으로 이어 붙인 숫자 줄보다 무엇이 몇인지 바로 읽힌다
+            brew.conditionItems.enumerated().reduce(Text("")) { line, e in
+                line + Text(e.offset == 0 ? "" : "   ") + Text(e.element.label + " ").foregroundStyle(rowMeta)
+                    + Text(e.element.value).fontWeight(.semibold).foregroundStyle(rowTitle)
+            }
+            .font(.subheadline).fontDesign(.rounded).monospacedDigit()
+            if !brew.grindParts.isEmpty {
+                FlowLayout(spacing: 4) { ForEach(brew.grindParts, id: \.self) { Pill(text: $0) } }
+            }
             let summary = [bean.countryText.isEmpty ? nil : bean.countryText, brew.method,
                            brew.stepsSummary ?? (brew.time.isEmpty ? nil : brew.time)].compactMap { $0 }
             Text(summary.joined(separator: " · ")).font(.caption).foregroundStyle(rowMeta).lineLimit(1)

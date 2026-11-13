@@ -96,7 +96,12 @@ struct BrewCardView: View {
             }
             let origin = [brew.method, brew.bean?.countryText ?? "", brew.bean?.roastLevel ?? ""].filter { !$0.isEmpty }
             Text(origin.joined(separator: " · ")).font(.subheadline).foregroundStyle(Color.muted)
-            Text(plan.conditionLine).font(.system(.body, design: .rounded)).monospacedDigit().foregroundStyle(Color.ink)
+            ConditionStrip(items: plan.conditionItems)
+            if !plan.grindParts.isEmpty {   // 그라인더마다 칩 하나 — 점으로만 이어 붙이면 어디서 끊기는지 안 보인다
+                FlowLayout(spacing: 6) {
+                    ForEach(plan.grindParts, id: \.self) { Pill(text: $0, font: .subheadline.weight(.semibold)) }
+                }
+            }
         }
     }
 
@@ -304,6 +309,22 @@ enum IceFill: CaseIterable {
     func reset() { startDate = nil; accumulated = 0; started = false }
 }
 
+/// 추출 조건을 "라벨 위 · 값 아래" 셀로 늘어놓는다 — 점으로 이어 붙인 한 줄보다 어느 숫자가 무엇인지 바로 읽힌다. 좁으면 줄바꿈
+struct ConditionStrip: View {
+    let items: [(label: String, value: String)]
+
+    var body: some View {
+        FlowLayout(spacing: 16) {
+            ForEach(items, id: \.label) { item in
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(item.label).font(.caption2).foregroundStyle(Color.muted)
+                    Text(item.value).font(.system(.body, design: .rounded).weight(.semibold)).monospacedDigit().foregroundStyle(Color.ink)
+                }
+            }
+        }
+    }
+}
+
 /// HOT(앰버) / ICED(틸) 캡슐 태그
 struct ServingChip: View {
     let brew: Brew
@@ -314,10 +335,27 @@ struct ServingChip: View {
 }
 
 extension Brew {
-    /// "15g · 240g · 92℃ · 코만단테 24클릭 · 1:16" (없는 항목은 생략). ICED는 " · 얼음 120g · 최종 1:15"가 붙는다
-    var conditionLine: String {
+    /// 목록 행용 한 줄: "15g · 240g · 92℃ · 코만단테 24클릭 · 1:16" (없는 항목은 생략). ICED는 " · 얼음 120g · 최종 1:15"가 붙는다
+    var conditionLine: String { line(includeGrind: true) }
+    /// 레시피 카드용 (라벨, 값) 셀. 없는 항목은 빠진다: 원두 · 물 · 얼음 · 온도 · 비율 · 최종
+    var conditionItems: [(label: String, value: String)] {
+        var items: [(label: String, value: String)] = []
+        if let d = doseGrams { items.append(("원두", d.gramsText)) }
+        if let w = waterGrams { items.append(("물", w.gramsText)) }
+        if isIced, let i = iceGrams { items.append(("얼음", i.gramsText)) }
+        if let t = waterTempC { items.append(("온도", "\(t)℃")) }
+        if let r = ratioText { items.append(("비율", r)) }
+        if isIced, let f = finalRatioText { items.append(("최종", f)) }
+        return items
+    }
+    /// "타임모어 C3S 14클릭 · S5 PRO 4.0 · 코만단테 C40 22클릭" → 그라인더별 조각 (칩 하나씩)
+    var grindParts: [String] {
+        grind.split(separator: "·").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+
+    private func line(includeGrind: Bool) -> String {
         var parts: [String?] = [doseGrams?.gramsText, waterGrams?.gramsText, waterTempC.map { "\($0)℃" },
-                                grind.isEmpty ? nil : grind, ratioText]
+                                includeGrind && !grind.isEmpty ? grind : nil, ratioText]
         if isIced { parts += [iceGrams.map { "얼음 " + $0.gramsText }, finalRatioText.map { "최종 " + $0 }] }
         return parts.compactMap { $0 }.joined(separator: " · ")
     }

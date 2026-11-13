@@ -41,4 +41,17 @@ struct CanonicalNameTests {
         brew.iceGrams = 120
         #expect(brew.conditionLine == "15g · 240g · 1:16 · 얼음 120g · 최종 1:24")
     }
+
+    @Test func grindSplitsIntoChipsAndNumbersLineOmitsIt() {
+        let brew = Brew()
+        brew.doseGrams = 20; brew.waterGrams = 180; brew.waterTempC = 94
+        brew.grind = "타임모어 C3S 14클릭 · S5 PRO 4.0 · 코만단테 C40 22클릭"
+        #expect(brew.grindParts == ["타임모어 C3S 14클릭", "S5 PRO 4.0", "코만단테 C40 22클릭"])
+        #expect(brew.conditionLine == "20g · 180g · 94℃ · \(brew.grind) · 1:9")
+        #expect(brew.conditionItems.map(\.label) == ["원두", "물", "온도", "비율"])
+        #expect(brew.conditionItems.map(\.value) == ["20g", "180g", "94℃", "1:9"])
+        brew.isIced = true; brew.iceGrams = 120
+        #expect(brew.conditionItems.map(\.label) == ["원두", "물", "얼음", "온도", "비율", "최종"])
+        #expect(brew.conditionItems.last?.value == "1:15")
+    }
 }
