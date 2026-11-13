@@ -5,11 +5,23 @@ import SwiftData
 struct BeanMuWikiApp: App {
     private let container: ModelContainer
     private let engine: SyncEngine
+    #if DEBUG
+    @State private var tab = debugArg("-debugTab") ?? "beans"   // `-debugTab recipes`
+    #else
+    @State private var tab = "beans"
+    #endif
 
     init() {
         let inMemory = CommandLine.arguments.contains("-inMemory")
         container = try! ModelContainer(for: Bean.self, Tombstone.self, configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory))
         engine = SyncEngine(context: container.mainContext, enabled: !inMemory)
+        #if DEBUG
+        // `-inMemory` + 환경 변수 BEANMUWIKI_BACKUP(백업 JSON 본문): 실제 저장소·동기화를 건드리지 않고 화면을 채운다 (스크린샷용).
+        // 파일 경로 대신 본문을 받는 이유: Mac 앱은 샌드박스라 임의 경로를 못 읽는다
+        if inMemory, let json = ProcessInfo.processInfo.environment["BEANMUWIKI_BACKUP"] {
+            _ = try? Snapshot.decode(Data(json.utf8)).merge(into: container.mainContext)
+        }
+        #endif
         engine.start()
     }
 
@@ -28,9 +40,9 @@ struct BeanMuWikiApp: App {
             #if os(macOS)
             MacRootView().rootStyle()
             #else
-            TabView {
-                Tab("원두", systemImage: "cup.and.saucer") { BeanListView() }
-                Tab("레시피", systemImage: "timer") { RecipesView() }
+            TabView(selection: $tab) {
+                Tab("원두", systemImage: "cup.and.saucer", value: "beans") { BeanListView() }
+                Tab("레시피", systemImage: "timer", value: "recipes") { RecipesView() }
             }
             .rootStyle()
             #endif

@@ -205,6 +205,8 @@ struct MacRootView: View {
     private func debugHooks() async {
         let args = CommandLine.arguments
         try? await Task.sleep(for: .milliseconds(600))
+        if let mode = debugArg("-debugAppearance") { NSApp.appearance = NSAppearance(named: mode == "dark" ? .darkAqua : .aqua) }
+        if args.contains("-debugWindow") { NSApp.activate() }   // 스크린샷이 비활성 창(회색 툴바)으로 찍히지 않게
         if let i = args.firstIndex(of: "-debugWindow"), i + 1 < args.count {
             let parts = args[i + 1].split(separator: "x").compactMap { Double($0) }
             if parts.count == 2, let window = NSApp.windows.first(where: { $0.isVisible }) {
@@ -213,7 +215,9 @@ struct MacRootView: View {
         }
         if let i = args.firstIndex(of: "-debugSidebar"), i + 1 < args.count, args[i + 1] == "recipes" {
             item = .recipes(nil)
-            brew = beans.first?.favoriteBrew(iced: false)
+            brew = (debugBean(in: beans) ?? beans.first)?.favoriteBrew(iced: true)
+        } else if let target = debugBean(in: beans) {
+            bean = target
         }
         if args.contains("-debugSettings") { openSettings() }
     }

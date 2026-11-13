@@ -305,10 +305,16 @@ private struct BrewRow: View {
 #endif
 
 #if DEBUG
-/// `-debugSheet bean|brew|flavor` 런치 인자: 클릭 없이 시트를 열어 레이아웃을 검증한다
-var debugSheet: String? {
+/// `-flag 값` 런치 인자의 값
+func debugArg(_ flag: String) -> String? {
     let args = CommandLine.arguments
-    guard let i = args.firstIndex(of: "-debugSheet"), i + 1 < args.count else { return nil }
+    guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
     return args[i + 1]
+}
+/// `-debugSheet bean|brew|flavor` 런치 인자: 클릭 없이 시트를 열어 레이아웃을 검증한다
+var debugSheet: String? { debugArg("-debugSheet") }
+/// `-debugBean 이름일부`: 스크린샷용으로 그 원두(레시피 화면이면 그 원두의 ICED ★ 레시피)를 연다
+func debugBean(in beans: [Bean]) -> Bean? {
+    debugArg("-debugBean").flatMap { key in beans.first { $0.name.contains(key) } }
 }
 #endif

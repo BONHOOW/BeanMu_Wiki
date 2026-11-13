@@ -41,6 +41,9 @@ struct RecipesView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.canvas)   // 빈 상세도 크림 캔버스
             }
         }
+        #if DEBUG
+        .task { if CommandLine.arguments.contains("-debugOpen") { selection = debugBean(in: beans)?.favoriteBrew(iced: true) } }
+        #endif
     }
 }
 
@@ -104,10 +107,14 @@ private struct RecipeCard: View {
                 ServingChip(brew: brew)
                 if !brew.variant.isEmpty { Pill(text: brew.variant) }
             }
-            // 라벨은 흐리게, 값은 굵게 — 점으로 이어 붙인 숫자 줄보다 무엇이 몇인지 바로 읽힌다
-            brew.conditionItems.enumerated().reduce(Text("")) { line, e in
-                line + Text(e.offset == 0 ? "" : "   ") + Text(e.element.label + " ").foregroundStyle(rowMeta)
-                    + Text(e.element.value).fontWeight(.semibold).foregroundStyle(rowTitle)
+            // 라벨은 흐리게, 값은 굵게. 라벨·값 쌍 단위로 줄바꿈 (좁은 iPhone에서 "비율 / 1:9"가 갈라지지 않게)
+            FlowLayout(spacing: 10) {
+                ForEach(brew.conditionItems, id: \.label) { item in
+                    HStack(spacing: 3) {
+                        Text(item.label).foregroundStyle(rowMeta)
+                        Text(item.value).fontWeight(.semibold).foregroundStyle(rowTitle)
+                    }
+                }
             }
             .font(.subheadline).fontDesign(.rounded).monospacedDigit()
             if !brew.grindParts.isEmpty {

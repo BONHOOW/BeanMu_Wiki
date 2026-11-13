@@ -21,6 +21,9 @@ struct BeanListView: View {
                 .refreshable { await engine?.syncNow() }                // 당겨서 지금 동기화
                 #endif
                 .searchable(text: $search, prompt: "원두, 로스터리, 산지")
+                #if DEBUG
+                .task { if CommandLine.arguments.contains("-debugOpen") { selection = debugBean(in: beans) } }
+                #endif
                 .overlay {
                     if beans.isEmpty {
                         ContentUnavailableView("원두를 추가해보세요", systemImage: "cup.and.saucer",
