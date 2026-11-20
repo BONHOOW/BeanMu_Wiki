@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    // src/firebase.ts ADMIN_EMAIL과 같은 값
+    function isAdmin() { return signedIn() && request.auth.token.email == 'gkh30878@gmail.com'; }
+    function invited() {
+      return isAdmin() || (signedIn() && exists(/databases/$(db)/documents/allowlist/$(request.auth.token.email)));
+    }
+
+    match /allowlist/{email} {
+      allow read: if isAdmin() || (signedIn() && request.auth.token.email == email);
+      allow write: if isAdmin();
+    }
+    // 초대된 사람은 모두 읽기, 쓰기는 본인 것만
+    match /members/{uid} {
+      allow read: if invited();
+      allow write: if invited() && request.auth.uid == uid;
+      match /beans/{beanId} {
+        allow read: if invited();
+        allow write: if invited() && request.auth.uid == uid;
+      }
+    }
+  }
+}

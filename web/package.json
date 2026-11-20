@@ -1,0 +1,29 @@
+{
+  "name": "beanmuwiki-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run src/model.test.ts",
+    "emulators": "firebase emulators:start --only auth,firestore,hosting",
+    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-beanmuwiki \"vitest run src/rules.test.ts\""
+  },
+  "dependencies": {
+    "firebase": "^11.10.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.5.2",
+    "firebase-tools": "^14.27.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
+}
