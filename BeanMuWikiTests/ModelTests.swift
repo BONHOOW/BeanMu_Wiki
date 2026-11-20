@@ -266,6 +266,9 @@ struct ModelTests {
         #expect(String("a\n\nb".memoAttributed.characters) == "a\n\nb")   // 섹션 사이 빈 줄 유지
         let legacy = "🧭 설계 의도: 1:16, C3S 15클릭 · E80 36 Step, 93°C\n[준비] 필터 린싱 — 떫으면 한 눈금 굵게"
         #expect(String(legacy.memoAttributed.characters) == legacy)   // 옛 메모는 그대로
+        let flow = "• 0:00 누적 40g — 4~5 g/s 블룸\n• 0:30 누적 90g — 4~5 g/s 나선형".memoAttributed
+        #expect(flow.runs.allSatisfy { $0.inlinePresentationIntent?.contains(.strikethrough) != true })   // 범위 ~는 취소선 아님
+        #expect(String(flow.characters).contains("4~5 g/s"))
     }
 
     @Test func pageURLAddsScheme() {

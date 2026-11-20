@@ -69,8 +69,10 @@ extension View {
 
 extension String {
     /// 메모·노트 표시용: `**굵게**` 같은 인라인 마크다운만 해석하고 줄바꿈·들여쓰기·`• `는 그대로 둔다 (ChatGPT_Prompt.md memo 서식)
+    /// `~`는 범위 표기(`3~4 g/s`)라 취소선으로 해석되지 않게 이스케이프
     var memoAttributed: AttributedString {
-        (try? AttributedString(markdown: self, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(self)
+        let md = replacingOccurrences(of: "~", with: "\\~")
+        return (try? AttributedString(markdown: md, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(self)
     }
 }
 
