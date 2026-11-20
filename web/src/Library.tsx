@@ -1,6 +1,8 @@
 // 원두 라이브러리 — 앱 MacRootView 사이드바(라이브러리 · 원두 색인)와 같은 분류. 내 원두(홈)와 팀원 원두가 같은 화면을 쓴다.
+import type { User } from 'firebase/auth'
 import { useMemo, useState } from 'react'
 import { BackLink, useLoad } from './App'
+import { ImportDialog, type ImportResult } from './ImportPage'
 import { RoastBar } from './BeanViews'
 import { getMember, listBeans } from './firebase'
 import {
@@ -49,9 +51,13 @@ function applyFacet(beans: Bean[], f: Facet): Bean[] {
 
 const setFacet = (base: string, f: Facet) => { location.hash = f === 'all' ? base : `${base}?f=${encodeURIComponent(f)}` }
 
-export function Library({ uid, own, facet }: { uid: string; own: boolean; facet: Facet }) {
-  const [data, err] = useLoad(() => Promise.all([own ? Promise.resolve(null) : getMember(uid), listBeans(uid)]), [uid])
+/** user가 있으면 내 원두(홈, 가져오기 가능), 없으면 팀원 원두(읽기 전용) */
+export function Library({ uid, user, facet }: { uid: string; user?: User; facet: Facet }) {
+  const own = !!user
+  const [data, err, reload] = useLoad(() => Promise.all([own ? Promise.resolve(null) : getMember(uid), listBeans(uid)]), [uid])
   const [q, setQ] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [done, setDone] = useState<ImportResult | null>(null)
   const base = own ? '#/' : `#/m/${uid}`
   const beans = data?.[1] ?? []
   const groups = useMemo(() => facetGroups(beans), [beans])
@@ -68,10 +74,15 @@ export function Library({ uid, own, facet }: { uid: string; own: boolean; facet:
   const title = own ? '내 원두' : `${data[0]?.name ?? '팀원'}의 원두`
   const recipeMode = facet === 'recipes' || facet === 'hot' || facet === 'iced'
 
-  if (own && beans.length === 0) return <Welcome />
+  const dialog = importing && user && (
+    <ImportDialog user={user} beans={beans} onClose={() => setImporting(false)}
+      onDone={(r) => { setImporting(false); setDone(r); reload() }} />
+  )
+  if (own && beans.length === 0) return <>{dialog}<Welcome onImport={() => setImporting(true)} /></>
 
   return (
     <div className="library">
+      {dialog}
       <aside className="facets">
         {groups.map(([group, items]) => (
           <div key={group}>
@@ -89,8 +100,12 @@ export function Library({ uid, own, facet }: { uid: string; own: boolean; facet:
         {!own && <BackLink href="#/team">팀원</BackLink>}
         <div className="titlebar">
           <h2>{title} <span className="muted">{beans.length}</span></h2>
-          {own && <a className="button primary" href="#/import">+ 가져오기</a>}
+          {own && <button className="primary" onClick={() => { setDone(null); setImporting(true) }}>+ 가져오기</button>}
         </div>
+        {done && (
+          <p className="banner ok">{done.text} {done.href && <a href={done.href}>보기 ›</a>}
+            <button className="link" onClick={() => setDone(null)} aria-label="닫기">✕</button></p>
+        )}
         <select className="facet-select" value={current.key} onChange={(e) => setFacet(base, e.target.value)} aria-label="분류">
           {groups.map(([group, items]) => (
             <optgroup key={group} label={group}>
@@ -157,7 +172,7 @@ function RecipeList({ uid, beans, servings }: { uid: string; beans: Bean[]; serv
   )
 }
 
-function Welcome() {
+function Welcome({ onImport }: { onImport: () => void }) {
   return (
     <section className="welcome">
       <h2>내 원두</h2>
@@ -168,7 +183,7 @@ function Welcome() {
           <li>ChatGPT 커피 프로젝트에서 원두 레시피를 받고, 답변 맨 끝 📦 JSON을 복사</li>
           <li><b>가져오기</b>에 붙여넣기 — 또는 빈무위키 앱의 백업 파일(.json)을 한 번에 올리기</li>
         </ol>
-        <a className="button primary" href="#/import">가져오기</a>
+        <button className="primary" onClick={onImport}>가져오기</button>
       </div>
       <p className="muted small">팀원 레시피는 위쪽 <a href="#/team">팀원</a>에서 볼 수 있습니다.</p>
     </section>

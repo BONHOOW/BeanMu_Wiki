@@ -117,3 +117,16 @@ a.row:hover { background: var(--tint); }
   .top nav a, .top nav button { padding: 6px 7px; font-size: 14px; }
   .steps li { grid-template-columns: 40px 56px 1fr; }
 }
+
+/* 가져오기 창: 데스크톱은 가운데 카드, 휴대폰은 아래에서 올라오는 시트 */
+dialog.sheet { border: 1px solid var(--line); border-radius: 16px; padding: 0; background: var(--card); color: var(--ink); width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); }
+dialog.sheet::backdrop { background: rgb(0 0 0 / .45); }
+.sheet-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+.sheet-body textarea { margin: 0; }
+.sheet-body .seg { margin: 0; }
+.sheet-body > button.primary, .sheet-body > label.button { align-self: flex-start; }
+.banner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.banner .link { margin-left: auto; }
+@media (max-width: 759px) {
+  dialog.sheet { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: 16px 16px 0 0; max-height: 90vh; }
+}

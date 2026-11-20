@@ -2,7 +2,6 @@ import { onAuthStateChanged, type User } from 'firebase/auth'
 import { useEffect, useState } from 'react'
 import { BeanDetail } from './BeanViews'
 import { ADMIN_EMAIL, addInvite, auth, isInvited, listInvites, listMembers, logOut, removeInvite, signIn, touchMember, type Member } from './firebase'
-import { ImportPage } from './ImportPage'
 import { Library } from './Library'
 
 interface Route { path: string[]; q: URLSearchParams }
@@ -52,12 +51,11 @@ export function App() {
   const tab = !page || own ? 'home' : page === 'm' || page === 'team' ? 'team' : page
 
   let body
-  if (page === 'import') body = <ImportPage user={user} />
-  else if (page === 'team') body = <Members me={user.uid} />
+  if (page === 'team') body = <Members me={user.uid} />
   else if (page === 'admin' && isAdmin) body = <Invites />
   else if (page === 'm' && a && c) body = <BeanDetail uid={a} beanId={c} own={own} serving={q.get('s')} />
-  else if (page === 'm' && a && !own) body = <Library uid={a} own={false} facet={q.get('f') ?? 'all'} />
-  else body = <Library uid={user.uid} own facet={q.get('f') ?? 'all'} />
+  else if (page === 'm' && a && !own) body = <Library uid={a} facet={q.get('f') ?? 'all'} />
+  else body = <Library uid={user.uid} user={user} facet={q.get('f') ?? 'all'} />
 
   return (
     <>

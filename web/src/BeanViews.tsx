@@ -58,7 +58,7 @@ export function BeanDetail({ uid, beanId, own, serving }: { uid: string; beanId:
       </div>
       {own && (
         <p className="muted small">
-          수정은 ChatGPT에서 새 JSON을 받아 <a href="#/import">가져오기</a>로 다시 올리면 됩니다 · <button className="link danger" onClick={remove}>이 원두 삭제</button>
+          수정은 ChatGPT에서 새 JSON을 받아 홈의 가져오기로 다시 올리면 됩니다 · <button className="link danger" onClick={remove}>이 원두 삭제</button>
         </p>
       )}
     </section>
