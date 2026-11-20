@@ -39,13 +39,13 @@ export function MyPage({ user }: { user: User }) {
         <h3 className="cardtitle">ChatGPT JSON 가져오기</h3>
         <p className="muted small">ChatGPT 답변 맨 끝의 📦 JSON 블록을 통째로 붙여넣으세요. 같은 이름의 원두는 정보와 ★ 레시피가 교체됩니다.</p>
         <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} placeholder='{"bean": {...}, "brews": [...]}' />
-        <button className="primary" disabled={busy || !text.trim()} onClick={importText}>가져오기</button>
+        <button className="primary" disabled={busy || !beans || !text.trim()} onClick={importText}>가져오기</button>
       </div>
 
       <div className="card">
         <h3 className="cardtitle">앱 백업 파일 올리기</h3>
         <p className="muted small">빈무위키 앱 › 설정 › 백업 파일 내보내기로 만든 .json. 원두를 한 번에 옮길 때 씁니다.</p>
-        <input type="file" accept="application/json,.json" disabled={busy}
+        <input type="file" accept="application/json,.json" disabled={busy || !beans}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = '' }} />
       </div>
 
