@@ -89,6 +89,32 @@ struct ModelTests {
         #expect(bean.brews.contains { $0.variant == "여자친구용" && $0.doseGrams == 15 })
     }
 
+    /// ChatGPT 프로젝트에 올리는 예시 JSON이 실제 가져오기를 통과하는지 (예시를 바꿀 때마다 깨지지 않게)
+    @Test func importExampleFileImports() throws {
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appending(path: "docs/import-example.json")
+        let container = try makeContainer(); let context = container.mainContext
+        let bean = try BeanImport.parse(String(contentsOf: url, encoding: .utf8)).apply(to: context, existing: [])
+        #expect(bean.brews.count == 6 && bean.brews.allSatisfy(\.isFavorite))
+        #expect(Set(bean.brews.map(\.method)) == ["V60", "V60 NEO", "V60 NEO 스위치"])
+        for b in bean.brews {
+            #expect(b.waterGrams == b.steps.last?.grams)
+            #expect(b.grindParts.count == 4)   // C3S · S5 PRO · C40 · E80
+            #expect(b.steps.dropLast().allSatisfy { $0.flowSplit.flow != nil || $0.note.contains("밸브") })   // 마지막(드리퍼 제거)·밸브 단계 외 모든 푸어에 g/s
+        }
+    }
+
+    /// 드리퍼 3종이 한 번에 들어와도 레시피 목록은 서빙·변형마다 카드 하나, 드리퍼는 추출 카드에서 고른다
+    @Test func recipeCardsGroupDrippers() throws {
+        let container = try makeContainer(); let context = container.mainContext
+        let json = #"{"bean": {"name": "D"}, "brews": [{"method": "V60 NEO 스위치", "iced": true, "isFavorite": true}, {"method": "V60", "iced": true, "isFavorite": true}, {"method": "네오", "iced": true, "isFavorite": true}, {"method": "V60", "iced": true, "variant": "연하게", "isFavorite": true}, {"method": "V60", "iced": false, "isFavorite": true}]}"#
+        let bean = try BeanImport.parse(json).apply(to: context, existing: [])
+        let cards = bean.recipeCards(iced: true)
+        #expect(cards.map(\.method) == ["V60", "V60"] && cards.map(\.variant) == ["", "연하게"])
+        #expect(bean.dripperSiblings(of: cards[0]).map(\.method) == ["V60", "V60 NEO", "V60 NEO 스위치"])
+        #expect(bean.dripperSiblings(of: cards[1]).count == 1)
+        #expect(bean.recipeCards(iced: false).count == 1)
+    }
+
     @Test func canonicalMethodAliases() {
         #expect(canonicalMethod("칼리타") == "칼리타 101" && canonicalMethod("Kalita 101") == "칼리타 101" && canonicalMethod("칼리타 101") == "칼리타 101")
         #expect(canonicalMethod("하리오 V60") == "V60" && canonicalMethod("v60") == "V60" && canonicalMethod("Kalita Wave") == "칼리타 웨이브")

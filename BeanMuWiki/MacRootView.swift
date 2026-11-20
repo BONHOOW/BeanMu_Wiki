@@ -133,7 +133,7 @@ struct MacRootView: View {
 
     private func recipeCount(_ iced: Bool?) -> Int {
         let servings: [Bool] = iced.map { [$0] } ?? [false, true]
-        return beans.reduce(0) { total, bean in total + servings.reduce(0) { $0 + bean.favoriteBrews(iced: $1).count } }
+        return beans.reduce(0) { total, bean in total + servings.reduce(0) { $0 + bean.recipeCards(iced: $1).count } }
     }
 
     @ViewBuilder private var content: some View {
@@ -177,7 +177,7 @@ struct MacRootView: View {
         Group {
             if isRecipes {
                 if let brew, !brew.isDeleted {
-                    BrewCardView(brew: brew).id(brew)
+                    DripperBrewCard(brew: brew).id(brew)
                 } else {
                     ContentUnavailableView("레시피를 선택하세요", systemImage: "timer")
                     .frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.canvas)   // 빈 상세도 크림 캔버스

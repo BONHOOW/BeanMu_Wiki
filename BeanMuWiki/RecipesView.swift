@@ -35,7 +35,7 @@ struct RecipesView: View {
             }
         } detail: {
             if let selection, !selection.isDeleted {
-                BrewCardView(brew: selection).id(selection)
+                DripperBrewCard(brew: selection).id(selection)
             } else {
                 ContentUnavailableView("레시피를 선택하세요", systemImage: "timer")
                     .frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.canvas)   // 빈 상세도 크림 캔버스
@@ -58,7 +58,7 @@ struct RecipeListColumn: View {
     private var servings: [Bool] { filter.map { [$0] } ?? [false, true] }
     /// (원두, 기록) 쌍 — 원두 순서 유지
     var recipes: [(bean: Bean, brew: Brew)] {
-        beans.flatMap { bean in servings.flatMap { iced in bean.favoriteBrews(iced: iced).map { (bean, $0) } } }
+        beans.flatMap { bean in servings.flatMap { iced in bean.recipeCards(iced: iced).map { (bean, $0) } } }
     }
 
     /// 원두 유형별 섹션 (싱글 오리진 / 블렌드). 비어 있으면 숨김
@@ -120,7 +120,9 @@ private struct RecipeCard: View {
             if !brew.grindParts.isEmpty {
                 FlowLayout(spacing: 4) { ForEach(brew.grindParts, id: \.self) { Pill(text: $0) } }
             }
-            let summary = [bean.countryText.isEmpty ? nil : bean.countryText, brew.method,
+            let others = bean.dripperSiblings(of: brew).count - 1
+            let methods = others > 0 ? "\(brew.method) 외 \(others)" : brew.method
+            let summary = [bean.countryText.isEmpty ? nil : bean.countryText, methods,
                            brew.stepsSummary ?? (brew.time.isEmpty ? nil : brew.time)].compactMap { $0 }
             Text(summary.joined(separator: " · ")).font(.caption).foregroundStyle(rowMeta).lineLimit(1)
             if !bean.cupNotes.isEmpty { FlavorDots(tags: bean.cupNotes) }

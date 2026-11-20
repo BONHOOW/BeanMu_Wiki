@@ -3,6 +3,29 @@ import SwiftData
 
 /// 추출하면서 보는 한 화면: 레시피 조건 · 지금/다음 단계 · 타이머. 읽기 전용.
 /// 마지막 단계보다 늦은 총 추출 시간(brew.time)이 있으면 "드리퍼 제거" 행이 붙는다.
+/// 추출 카드 + 위쪽 드리퍼 선택(같은 원두·서빙·변형의 ★가 둘 이상일 때). 고른 드리퍼의 카드로 바꿔 보여 준다
+struct DripperBrewCard: View {
+    let brew: Brew
+    @State private var picked: Brew?
+
+    var body: some View {
+        let siblings = brew.bean?.dripperSiblings(of: brew) ?? [brew]
+        let current = picked.flatMap { siblings.contains($0) ? $0 : nil } ?? brew
+        BrewCardView(brew: current).id(current)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if siblings.count > 1 {
+                    Picker("드리퍼", selection: Binding(get: { current }, set: { picked = $0 })) {
+                        ForEach(siblings, id: \.uuid) { Text($0.method).tag($0) }
+                    }
+                    .pickerStyle(.segmented).labelsHidden()
+                    .accessibilityIdentifier("dripperPicker")
+                    .padding(.horizontal).padding(.vertical, Theme.s8)
+                    .background(Color.canvas)
+                }
+            }
+    }
+}
+
 struct BrewCardView: View {
     let brew: Brew
     @State private var timer = BrewTimer()
@@ -142,7 +165,8 @@ struct BrewCardView: View {
                     .font(.subheadline).monospacedDigit().foregroundStyle(Color.muted)
                 if dose > brew.doseCap {
                     Text(brew.method == "칼리타 101" ? "칼리타 101은 18g 넘기면 수위가 필터 위로 올라옵니다 — 두 번 나눠 내리거나 102를 쓰세요"
-                                                     : "V60 02는 30g 넘기면 드로우다운이 늘어집니다 — 두 번 나눠 내리세요")
+                         : brew.method.contains("스위치") ? "스위치는 25g 넘기면 침지할 물이 드리퍼를 넘칩니다 — 두 번 나눠 내리세요"
+                         : "\(brew.method)는 30g 넘기면 드로우다운이 늘어집니다 — 두 번 나눠 내리세요")
                         .font(.caption).foregroundStyle(Color.cherry)
                 } else if brew.isIced, iceFill == .full {
                     Text("얼음이 가득이면 예상보다 더 녹습니다 — 얼음 5:5(진하게) 레시피가 맞습니다").font(.caption).foregroundStyle(Color.muted)
@@ -178,7 +202,11 @@ struct BrewCardView: View {
                     Text(phase < steps.count ? "지금 · \(phase + 1)차 푸어 → \(target(phase))" : "지금 · 드리퍼 제거 · 추출 종료")
                         .font(.title3.weight(.semibold)).foregroundStyle(Color.brand)
                     if phase < steps.count, !steps[phase].note.isEmpty {
-                        Text(steps[phase].note).foregroundStyle(Color.muted)
+                        let s = steps[phase].flowSplit
+                        HStack(alignment: .firstTextBaseline, spacing: Theme.s8) {
+                            if let flow = s.flow { Pill(text: flow, fill: .brand, foreground: .white, font: .title3.weight(.bold)) }
+                            Text(s.rest).foregroundStyle(Color.muted)
+                        }
                     }
                 } else {
                     Text("지금 · 대기").font(.title3.weight(.semibold)).foregroundStyle(Color.brand)
@@ -232,7 +260,11 @@ struct BrewCardView: View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(time).frame(width: 44, alignment: .leading)
             Text(grams).font(.system(.title3, design: .rounded, weight: .bold)).frame(width: 64, alignment: .trailing)
-            Text(note)
+            let s = PourStep(atSeconds: 0, grams: 0, note: note).flowSplit
+            VStack(alignment: .leading, spacing: 4) {
+                if let flow = s.flow { Pill(text: flow) }
+                if !s.rest.isEmpty { Text(s.rest) }
+            }
             Spacer(minLength: 0)
             if state == .done { Image(systemName: "checkmark") }
         }

@@ -186,16 +186,17 @@ struct BeanDetailView: View {
                 #endif
         } content: {
             VStack(alignment: .leading, spacing: 0) {
-                // 서빙(HOT/ICED) × 드리퍼별 기준 레시피 → 추출 카드 열기
+                // 서빙(HOT/ICED) × 변형별 기준 레시피 → 추출 카드(드리퍼는 카드 위에서 고름)
                 ForEach([false, true], id: \.self) { iced in
-                    ForEach(Array(bean.favoriteBrews(iced: iced).enumerated()), id: \.element.uuid) { index, fav in
-                        NavigationLink { BrewCardView(brew: fav) } label: {
+                    ForEach(Array(bean.recipeCards(iced: iced).enumerated()), id: \.element.uuid) { index, fav in
+                        let others = bean.dripperSiblings(of: fav).count - 1
+                        NavigationLink { DripperBrewCard(brew: fav) } label: {
                             HStack(spacing: Theme.s12) {
                                 Image(systemName: "timer").foregroundStyle(Color.brand)
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 4) {
                                         if fav.isFavorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(Color.cherry) }
-                                        Text("\(fav.methodVariantLabel) · \(fav.isFavorite ? "기준 레시피" : "최근 기록")").font(.headline)
+                                        Text("\(fav.methodVariantLabel)\(others > 0 ? " 외 \(others)" : "") · \(fav.isFavorite ? "기준 레시피" : "최근 기록")").font(.headline)
                                         ServingChip(brew: fav)
                                     }
                                     Text(fav.conditionLine).font(.caption).foregroundStyle(Color.muted)

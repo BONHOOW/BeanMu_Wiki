@@ -54,4 +54,13 @@ struct CanonicalNameTests {
         #expect(brew.conditionItems.map(\.label) == ["원두", "물", "얼음", "온도", "비율", "최종"])
         #expect(brew.conditionItems.last?.value == "1:15")
     }
+
+    @Test func flowTargetSplitsOutOfStepNote() {
+        func split(_ n: String) -> (String?, String) { let r = PourStep(atSeconds: 0, grams: 0, note: n).flowSplit; return (r.flow, r.rest) }
+        #expect(split("4~5 g/s · 가는 나선형") == ("4~5 g/s", "가는 나선형"))
+        #expect(split("굵은 나선형 (8g/s)") == ("8 g/s", "굵은 나선형"))
+        #expect(split("밸브 열기 · 2.5–3 g/s") == ("2.5–3 g/s", "밸브 열기"))
+        #expect(split("센터 푸어") == (nil, "센터 푸어"))
+        #expect(canonicalMethod("V60 NEO") == "V60 NEO" && canonicalMethod("하리오 V60 neo") == "V60 NEO" && canonicalMethod("v60") == "V60")
+    }
 }

@@ -41,6 +41,18 @@ final class Bean {
         return stars.isEmpty ? same.max { $0.date < $1.date }.map { [$0] } ?? [] : stars
     }
 
+    /// 레시피 목록 카드용: 변형마다 하나(드리퍼 목록 순 첫 번째). 다른 드리퍼는 추출 카드에서 고른다
+    func recipeCards(iced: Bool) -> [Brew] {
+        var seen = Set<String>()
+        return favoriteBrews(iced: iced).filter { seen.insert($0.variant).inserted }
+    }
+
+    /// 카드의 같은 서빙·변형 ★ 레시피들 (드리퍼 목록 순) — 추출 카드의 드리퍼 선택지
+    func dripperSiblings(of brew: Brew) -> [Brew] {
+        let list = favoriteBrews(iced: brew.isIced).filter { $0.variant == brew.variant }
+        return list.contains(brew) ? list : [brew]
+    }
+
     /// 해당 서빙의 첫 기준 레시피 (드리퍼 목록 순). 없으면 그 서빙의 가장 최근 기록
     func favoriteBrew(iced: Bool) -> Brew? { favoriteBrews(iced: iced).first }
 
@@ -101,6 +113,15 @@ struct PourStep: Codable, Hashable {
     static func timeString(_ seconds: Int) -> String { "\(seconds / 60):" + String(format: "%02d", seconds % 60) }
 
     var timeText: String { Self.timeString(atSeconds) }
+
+    /// 메모 속 유속 목표를 칩으로 뺀다: "4~5 g/s · 가는 나선형" → ("4~5 g/s", "가는 나선형"). 없으면 (nil, 메모)
+    var flowSplit: (flow: String?, rest: String) {
+        guard let r = note.range(of: #"\d+(\.\d+)?(\s*[~–-]\s*\d+(\.\d+)?)?\s*g/s"#, options: .regularExpression) else { return (nil, note) }
+        let flow = note[r].replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "g/s", with: " g/s")
+        let rest = (note[..<r.lowerBound] + note[r.upperBound...])
+            .trimmingCharacters(in: CharacterSet(charactersIn: " ·,—-()"))
+        return (flow, rest)
+    }
 }
 
 /// 레시피 + 테이스팅 기록. isFavorite = 이 원두의 서빙(HOT/ICED)별 기준 레시피
@@ -142,7 +163,7 @@ final class Brew {
     /// "V60 · 연하게" (변형이 없으면 "V60")
     var methodVariantLabel: String { variant.isEmpty ? method : "\(method) · \(variant)" }
     /// 드리퍼별 실사용 원두량 상한 (컵 스케일 경고용). 칼리타 101은 1~2인용이라 18g, 나머지는 V60 02 기준 30g
-    var doseCap: Double { method == "칼리타 101" ? 18 : 30 }
+    var doseCap: Double { method == "칼리타 101" ? 18 : method.contains("스위치") ? 25 : 30 }
 
     /// 브루 비율 "1:16" (원두 : 브루잉 워터)
     var ratioText: String? { ratioText(water: waterGrams) }
@@ -232,7 +253,7 @@ final class Tombstone {
     init(uuid: UUID, kind: String) { self.uuid = uuid; self.kind = kind }
 }
 
-let brewMethods = ["V60", "칼리타 101", "칼리타 웨이브", "오리가미", "하리오 스위치", "에어로프레스", "프렌치프레스", "모카포트", "에스프레소", "콜드브루", "기타"]
+let brewMethods = ["V60", "V60 NEO", "V60 NEO 스위치", "칼리타 101", "칼리타 웨이브", "오리가미", "에어로프레스", "프렌치프레스", "모카포트", "에스프레소", "콜드브루", "기타"]
 
 /// 드리퍼 정렬 순서: 목록에 있는 것 먼저(목록 순), 없는 것은 이름순으로 뒤에
 func methodOrder(_ method: String) -> (Int, String) { (brewMethods.firstIndex(of: method) ?? brewMethods.count, method) }
@@ -244,7 +265,8 @@ func canonicalMethod(_ raw: String) -> String {
         "칼리타": "칼리타 101", "kalita": "칼리타 101", "칼리타101": "칼리타 101", "kalita101": "칼리타 101",
         "칼리타웨이브": "칼리타 웨이브", "kalitawave": "칼리타 웨이브", "웨이브": "칼리타 웨이브",
         "v60": "V60", "하리오v60": "V60", "hariov60": "V60", "하리오": "V60",
-        "origami": "오리가미", "switch": "하리오 스위치", "하리오스위치": "하리오 스위치", "aeropress": "에어로프레스",
+        "v60네오": "V60 NEO", "네오": "V60 NEO", "하리오v60neo": "V60 NEO", "hariov60neo": "V60 NEO", "neo": "V60 NEO",
+        "origami": "오리가미", "switch": "V60 NEO 스위치", "스위치": "V60 NEO 스위치", "하리오스위치": "V60 NEO 스위치", "neo스위치": "V60 NEO 스위치", "네오스위치": "V60 NEO 스위치", "v60neoswitch": "V60 NEO 스위치", "neoswitch": "V60 NEO 스위치", "aeropress": "에어로프레스",
     ]
     if let hit = aliases[key] { return hit }
     return brewMethods.first { matchKey($0) == key } ?? raw.trimmingCharacters(in: .whitespaces)
