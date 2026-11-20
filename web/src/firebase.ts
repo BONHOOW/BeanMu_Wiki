@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app'
 import { GoogleAuthProvider, connectAuthEmulator, getAuth, signInWithPopup, signOut, type User } from 'firebase/auth'
 import {
-  collection, connectFirestoreEmulator, deleteDoc, doc, getDoc, getDocs, getFirestore, orderBy, query,
-  serverTimestamp, setDoc, writeBatch,
+  collection, connectFirestoreEmulator, deleteDoc, doc, getDoc, getDocs, initializeFirestore, onSnapshot, orderBy,
+  persistentLocalCache, persistentMultipleTabManager, query, serverTimestamp, setDoc, writeBatch,
 } from 'firebase/firestore'
 import type { Bean } from './model'
 
@@ -14,7 +14,8 @@ const app = initializeApp({
   appId: env.VITE_FB_APP_ID,
 })
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+// 기기 캐시: 다시 열 때 빠르고 오프라인에서도 보임. 변경은 onSnapshot으로 실시간 반영
+export const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })
 if (env.VITE_USE_EMULATOR === '1') {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
   connectFirestoreEmulator(db, '127.0.0.1', 8080)
@@ -55,6 +56,14 @@ export async function getMember(uid: string): Promise<Member | null> {
 
 const beansCol = (uid: string) => collection(db, 'members', uid, 'beans')
 
+/** 원두 목록 실시간 구독 — 다른 기기·팀원이 바꾸면 바로 반영. 반환값으로 구독 해제 */
+export function watchBeans(uid: string, next: (beans: Bean[]) => void, fail: (e: Error) => void) {
+  return onSnapshot(beansCol(uid), (s) => next(s.docs.map((d) => d.data() as Bean)), fail)
+}
+export function watchBean(uid: string, id: string, next: (bean: Bean | null) => void, fail: (e: Error) => void) {
+  return onSnapshot(doc(beansCol(uid), id), (d) => next(d.exists() ? (d.data() as Bean) : null), fail)
+}
+
 export async function listBeans(uid: string): Promise<Bean[]> {
   return (await getDocs(beansCol(uid))).docs.map((d) => d.data() as Bean)
 }
@@ -84,8 +93,10 @@ export async function deleteBean(uid: string, id: string) {
   await refreshCount(uid)
 }
 
-export async function listInvites(): Promise<string[]> {
-  return (await getDocs(collection(db, 'allowlist'))).docs.map((d) => d.id).sort()
+export interface Invite { email: string; addedAt?: { seconds: number } }
+export async function listInvites(): Promise<Invite[]> {
+  return (await getDocs(collection(db, 'allowlist'))).docs.map((d) => ({ email: d.id, ...(d.data() as Omit<Invite, 'email'>) }))
+    .sort((a, b) => (b.addedAt?.seconds ?? 0) - (a.addedAt?.seconds ?? 0))
 }
 export const addInvite = (email: string) => setDoc(doc(db, 'allowlist', emailKey(email)), { addedAt: serverTimestamp() })
 export const removeInvite = (email: string) => deleteDoc(doc(db, 'allowlist', email))

@@ -1,10 +1,10 @@
 // 원두 라이브러리 — 앱 MacRootView 사이드바(라이브러리 · 원두 색인)와 같은 분류. 내 원두(홈)와 팀원 원두가 같은 화면을 쓴다.
 import type { User } from 'firebase/auth'
 import { useMemo, useState } from 'react'
-import { BackLink, useLoad } from './App'
+import { BackLink, useLive, useLoad, useTitle } from './App'
 import { ImportDialog, type ImportResult } from './ImportPage'
 import { RoastBar } from './BeanViews'
-import { getMember, listBeans } from './firebase'
+import { getMember, watchBeans } from './firebase'
 import {
   type Bean, type Brew, ROAST_LEVELS, countryParts, countryText, finalRatioText, flagged, gramsText, grindParts,
   ratioText, recipeCards, dripperSiblings,
@@ -54,9 +54,12 @@ const setFacet = (base: string, f: Facet) => { location.hash = f === 'all' ? bas
 /** user가 있으면 내 원두(홈, 가져오기 가능), 없으면 팀원 원두(읽기 전용) */
 export function Library({ uid, user, facet }: { uid: string; user?: User; facet: Facet }) {
   const own = !!user
-  const [data, err, reload] = useLoad(() => Promise.all([own ? Promise.resolve(null) : getMember(uid), listBeans(uid)]), [uid])
+  const [member] = useLoad(() => (own ? Promise.resolve(null) : getMember(uid)), [uid])
+  const [list, err] = useLive<Bean[]>((next, fail) => watchBeans(uid, next, fail), [uid])
+  const data = list && ([member ?? null, list] as const)
   const [q, setQ] = useState('')
   const [importing, setImporting] = useState(false)
+  useTitle(own ? undefined : data?.[0]?.name)
   const [done, setDone] = useState<ImportResult | null>(null)
   const base = own ? '#/' : `#/m/${uid}`
   const beans = data?.[1] ?? []
@@ -76,7 +79,7 @@ export function Library({ uid, user, facet }: { uid: string; user?: User; facet:
 
   const dialog = importing && user && (
     <ImportDialog user={user} beans={beans} onClose={() => setImporting(false)}
-      onDone={(r) => { setImporting(false); setDone(r); reload() }} />
+      onDone={(r) => { setImporting(false); setDone(r) }} />
   )
   if (own && beans.length === 0) return <>{dialog}<Welcome onImport={() => setImporting(true)} /></>
 
@@ -164,7 +167,7 @@ function RecipeList({ uid, beans, servings }: { uid: string; beans: Bean[]; serv
               <span className="muted small block">{r.method}{r.variant && ` · ${r.variant}`}{others > 0 && ` 외 ${others}`} · {cond}</span>
               {r.grind && <span className="small block notes">{grindParts(r.grind).join(' · ')}</span>}
             </span>
-            <span className="muted">›</span>
+            <span className="chev">›</span>
           </a>
         )
       })}

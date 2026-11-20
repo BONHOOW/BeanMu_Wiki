@@ -60,7 +60,7 @@ export function App() {
   return (
     <>
       <header className="top">
-        <a href="#/" className="logo">빈무위키</a>
+        <a href="#/" aria-label="빈무위키 홈"><Logo /></a>
         <nav>
           <a href="#/" className={tab === 'home' ? 'on' : ''}>내 원두</a>
           <a href="#/team" className={tab === 'team' ? 'on' : ''}>팀원</a>
@@ -79,7 +79,7 @@ function Login() {
   const [err, setErr] = useState('')
   return (
     <div className="center">
-      <h1 className="logo big">빈무위키</h1>
+      <h1 style={{ margin: 0 }}><Logo big /></h1>
       <p className="muted">내 커피 레시피를 모아 보고, 팀원과 나눠 보는 곳</p>
       <button className="primary" onClick={() => signIn().catch((e) => {
         if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') setErr(String(e.message ?? e))
@@ -93,12 +93,20 @@ function Login() {
 function NotInvited({ user }: { user: User }) {
   return (
     <div className="center">
-      <h1 className="logo big">빈무위키</h1>
+      <h1 style={{ margin: 0 }}><Logo big /></h1>
       <p><b>{user.email}</b>은(는) 아직 초대되지 않았습니다.</p>
       <p className="muted">관리자에게 이 이메일을 알려 주세요.</p>
       <button onClick={logOut}>다른 계정으로 로그인</button>
     </div>
   )
+}
+
+/** 공용: 실시간 구독(onSnapshot) + 에러 표시 */
+export function useLive<T>(subscribe: (next: (v: T) => void, fail: (e: Error) => void) => () => void, deps: unknown[]): [T | undefined, string] {
+  const [data, setData] = useState<T>()
+  const [err, setErr] = useState('')
+  useEffect(() => { setData(undefined); setErr(''); return subscribe(setData, (e) => setErr(String(e.message ?? e))) }, deps)
+  return [data, err]
 }
 
 /** 공용: 비동기 로드 + 에러 표시 */
@@ -115,7 +123,23 @@ export function useLoad<T>(load: () => Promise<T>, deps: unknown[]): [T | undefi
   return [data, err, () => setTick((t) => t + 1)]
 }
 
+export function useTitle(title?: string) {
+  useEffect(() => { document.title = title ? `${title} · 빈무위키` : '빈무위키' }, [title])
+}
+
+const BeanMark = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <ellipse cx="12" cy="12" rx="7" ry="10.5" transform="rotate(35 12 12)" fill="currentColor" />
+    <path d="M7.6 4.6c3.2 3 .8 6.2 4.2 8.2s1.6 6 4.6 7" stroke="var(--canvas)" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+  </svg>
+)
+export const Logo = ({ big }: { big?: boolean }) => <span className={`logo ${big ? 'big' : ''}`}><BeanMark />빈무위키</span>
+
+const initial = (s: string) => s.trim().slice(0, 1).toUpperCase()
+const day = (t?: { seconds: number }) => (t ? new Date(t.seconds * 1000).toLocaleDateString('ko-KR') : null)
+
 function Members({ me }: { me: string }) {
+  useTitle('팀원')
   const [members, err] = useLoad(listMembers, [])
   if (err) return <p className="error">{err}</p>
   if (!members) return <p className="muted">불러오는 중…</p>
@@ -123,59 +147,93 @@ function Members({ me }: { me: string }) {
   return (
     <section className="narrow">
       <h2>팀원 <span className="muted">{others.length}</span></h2>
-      <p className="muted small">팀원을 누르면 그 사람의 원두와 레시피를 볼 수 있습니다.</p>
-      <div className="list">
-        {others.map((m) => <MemberRow key={m.uid} m={m} />)}
-      </div>
-      {others.length === 0 && <p className="muted">아직 다른 팀원이 없습니다.</p>}
+      <p className="muted lead">팀원을 누르면 그 사람의 원두와 레시피를 볼 수 있습니다.</p>
+      {others.length === 0
+        ? <div className="card empty">아직 다른 팀원이 없습니다.<br />초대한 사람이 처음 로그인하면 여기에 나타납니다.</div>
+        : <div className="grid">{others.map((m) => <MemberCard key={m.uid} m={m} />)}</div>}
     </section>
   )
 }
 
-function MemberRow({ m }: { m: Member }) {
-  const updated = m.updatedAt ? new Date(m.updatedAt.seconds * 1000).toLocaleDateString('ko-KR') : null
+function MemberCard({ m }: { m: Member }) {
+  const updated = day(m.updatedAt)
   return (
-    <a className="row" href={`#/m/${m.uid}`}>
-      {m.photoURL ? <img className="avatar" src={m.photoURL} alt="" referrerPolicy="no-referrer" /> : <span className="avatar">{m.name.slice(0, 1)}</span>}
+    <a className="member" href={`#/m/${m.uid}`}>
+      {m.photoURL ? <img className="avatar" src={m.photoURL} alt="" referrerPolicy="no-referrer" /> : <span className="avatar">{initial(m.name)}</span>}
       <span className="grow">
         <b>{m.name}</b>
         <span className="muted small block">원두 {m.beanCount ?? 0}개{updated && ` · ${updated} 업데이트`}</span>
       </span>
-      <span className="muted">›</span>
+      <span className="chev">›</span>
     </a>
   )
 }
 
 function Invites() {
-  const [list, err, reload] = useLoad(listInvites, [])
+  useTitle('초대 관리')
+  const [data, err, reload] = useLoad(() => Promise.all([listInvites(), listMembers()]), [])
   const [email, setEmail] = useState('')
-  const [msg, setMsg] = useState('')
-  const add = async () => {
-    const e = email.trim().toLowerCase()
-    if (!/^\S+@\S+\.\S+$/.test(e)) return setMsg('이메일 형식이 아닙니다')
-    if (list?.includes(e)) return setMsg('이미 초대한 이메일입니다')
-    await addInvite(e).then(() => { setEmail(''); setMsg(''); reload() }).catch((x) => setMsg(String(x.message)))
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [invites, members] = data ?? [[], []]
+  const joined = new Set(members.map((m) => m.email.toLowerCase()))
+
+  const add = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const v = email.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return setMsg({ ok: false, text: '이메일 형식이 아닙니다' })
+    if (invites.some((i) => i.email === v)) return setMsg({ ok: false, text: '이미 초대한 이메일입니다' })
+    setBusy(true)
+    try { await addInvite(v); setEmail(''); setMsg({ ok: true, text: `${v} 을(를) 초대했습니다. 아래 주소를 보내 주세요.` }); reload() }
+    catch (x: any) { setMsg({ ok: false, text: String(x.message ?? x) }) }
+    setBusy(false)
   }
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(location.origin); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch { /* 권한 없음 — 주소를 직접 복사 */ }
+  }
+
   return (
     <section className="narrow">
       <h2>초대 관리</h2>
-      <p className="muted">여기 등록한 구글 계정만 로그인해서 레시피를 볼 수 있습니다. 회사 계정보다 개인 Gmail을 권합니다.</p>
-      <div className="inline">
-        <input type="email" inputMode="email" autoCapitalize="none" placeholder="teammate@gmail.com" value={email}
-          onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
-        <button className="primary" onClick={add}>초대</button>
+      <p className="muted lead">여기 등록한 구글 계정만 로그인해서 레시피를 보고 올릴 수 있습니다. 회사 계정보다 개인 Gmail을 권합니다.</p>
+
+      <form className="card" onSubmit={add}>
+        <h3 className="cardtitle">새로 초대하기</h3>
+        <div className="inline">
+          <input type="email" inputMode="email" autoCapitalize="none" autoComplete="off" placeholder="teammate@gmail.com"
+            value={email} onChange={(e) => { setEmail(e.target.value); setMsg(null) }} aria-label="초대할 이메일" />
+          <button className="primary" type="submit" disabled={busy || !email.trim()}>초대하기</button>
+        </div>
+        {msg && <p className={`small ${msg.ok ? 'ok' : 'error'}`} style={{ margin: '10px 0 0' }}>{msg.text}</p>}
+      </form>
+
+      <div className="card">
+        <h3 className="cardtitle">팀원에게 보낼 주소</h3>
+        <div className="inline">
+          <code className="grow" style={{ padding: '10px 12px' }}>{location.origin}</code>
+          <button type="button" onClick={copy}>{copied ? '복사됨 ✓' : '주소 복사'}</button>
+        </div>
+        <p className="muted small" style={{ margin: '10px 0 0' }}>카카오톡·슬랙 안의 브라우저에서는 구글 로그인이 막히니 Safari나 Chrome으로 열어 달라고 알려 주세요.</p>
       </div>
-      {(msg || err) && <p className="error">{msg || err}</p>}
-      <div className="list">
-        {list?.map((e) => (
-          <div className="row" key={e}>
-            <span className="grow">{e}</span>
-            <button className="link danger" onClick={() => confirm(`${e} 초대를 취소할까요?`) && removeInvite(e).then(reload)}>삭제</button>
-          </div>
-        ))}
-      </div>
-      {list?.length === 0 && <p className="muted">아직 초대한 사람이 없습니다.</p>}
-      <p className="muted small">초대한 사람에게 보낼 주소: <b>{location.origin}</b> (Safari·Chrome으로 열기)</p>
+
+      <h3 className="section">초대한 사람 {invites.length}</h3>
+      {err && <p className="error">{err}</p>}
+      {data && invites.length === 0 && <div className="card empty">아직 초대한 사람이 없습니다.</div>}
+      {invites.length > 0 && (
+        <div className="list">
+          {invites.map((i) => (
+            <div className="row" key={i.email}>
+              <span className="avatar">{initial(i.email)}</span>
+              <span className="grow">
+                {i.email}{joined.has(i.email) ? <span className="pill ok">가입함</span> : <span className="pill">대기 중</span>}
+                {day(i.addedAt) && <span className="muted small block">{day(i.addedAt)} 초대</span>}
+              </span>
+              <button className="link danger" onClick={() => confirm(`${i.email} 초대를 취소할까요?\n이미 올린 레시피는 남고, 다시 로그인할 수 없게 됩니다.`) && removeInvite(i.email).then(reload)}>초대 취소</button>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

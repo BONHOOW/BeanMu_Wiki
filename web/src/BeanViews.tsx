@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { BackLink, useLoad } from './App'
-import { deleteBean, getBean } from './firebase'
+import { BackLink, useLive, useTitle } from './App'
+import { deleteBean, watchBean } from './firebase'
 import {
   type Bean, type Brew, countryText, dripperSiblings, finalRatioText, flowSplit, gramsText, grindParts, memoHtml,
   ratioText, recipeCards, roastColor, roastIndex, timeText,
@@ -19,7 +19,8 @@ export function RoastBar({ level }: { level: string }) {
 }
 
 export function BeanDetail({ uid, beanId, own, serving }: { uid: string; beanId: string; own: boolean; serving: string | null }) {
-  const [bean, err] = useLoad(() => getBean(uid, beanId), [uid, beanId])
+  const [bean, err] = useLive<Bean | null>((next, fail) => watchBean(uid, beanId, next, fail), [uid, beanId])
+  useTitle(bean?.name)
   const back = own ? '#/' : `#/m/${uid}`
   const remove = async () => {
     if (!bean || !confirm(`${bean.name}을(를) 삭제할까요? 팀원들에게서도 사라집니다.`)) return
