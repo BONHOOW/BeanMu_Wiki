@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
-import { useLoad } from './App'
-import { getBean, getMember, listBeans } from './firebase'
+import { useState } from 'react'
+import { BackLink, useLoad } from './App'
+import { deleteBean, getBean } from './firebase'
 import {
   type Bean, type Brew, countryText, dripperSiblings, finalRatioText, flowSplit, gramsText, grindParts, memoHtml,
   ratioText, recipeCards, roastColor, roastIndex, timeText,
@@ -18,50 +18,14 @@ export function RoastBar({ level }: { level: string }) {
   )
 }
 
-export function BeanList({ uid, me }: { uid: string; me: string }) {
-  const [data, err] = useLoad(() => Promise.all([getMember(uid), listBeans(uid)]), [uid])
-  const [q, setQ] = useState('')
-  const beans = useMemo(() => {
-    const key = q.trim().toLowerCase()
-    return (data?.[1] ?? [])
-      .filter((b) => !key || [b.name, b.roaster, b.country, ...b.cupNotes].join(' ').toLowerCase().includes(key))
-      .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-  }, [data, q])
-  if (err) return <p className="error">{err}</p>
-  if (!data) return <p className="muted">불러오는 중…</p>
-  const [member] = data
-  const groups: [string, Bean[]][] = [['싱글 오리진', beans.filter((b) => !b.isBlend)], ['블렌드', beans.filter((b) => b.isBlend)]]
-  return (
-    <section>
-      <a href="#/" className="back">‹ 회원</a>
-      <h2>{member?.name ?? '회원'}의 원두 <span className="muted">{data[1].length}</span></h2>
-      <input className="search" placeholder="원두, 로스터리, 산지, 컵노트" value={q} onChange={(e) => setQ(e.target.value)} />
-      {data[1].length === 0 && (
-        <p className="muted">아직 올린 원두가 없습니다.{uid === me && <> <a href="#/me">내 레시피</a>에서 가져오세요.</>}</p>
-      )}
-      {groups.map(([title, list]) => list.length > 0 && (
-        <div key={title}>
-          <h3 className="section">{title}</h3>
-          <div className="list">
-            {list.map((b) => (
-              <a key={b.id} className="row bean" href={`#/m/${uid}/b/${b.id}`}>
-                <span className="grow">
-                  <b>{b.name}</b>
-                  <span className="muted small block">{[b.roaster, countryText(b), b.region].filter(Boolean).join(' · ')}</span>
-                  {b.cupNotes.length > 0 && <span className="small block notes">{b.cupNotes.join(', ')}</span>}
-                </span>
-                <RoastBar level={b.roastLevel} />
-              </a>
-            ))}
-          </div>
-        </div>
-      ))}
-    </section>
-  )
-}
-
-export function BeanDetail({ uid, beanId }: { uid: string; beanId: string }) {
+export function BeanDetail({ uid, beanId, own, serving }: { uid: string; beanId: string; own: boolean; serving: string | null }) {
   const [bean, err] = useLoad(() => getBean(uid, beanId), [uid, beanId])
+  const back = own ? '#/' : `#/m/${uid}`
+  const remove = async () => {
+    if (!bean || !confirm(`${bean.name}을(를) 삭제할까요? 팀원들에게서도 사라집니다.`)) return
+    await deleteBean(uid, bean.id)
+    location.hash = back
+  }
   if (err) return <p className="error">{err}</p>
   if (bean === undefined) return <p className="muted">불러오는 중…</p>
   if (!bean) return <p className="muted">원두를 찾을 수 없습니다.</p>
@@ -71,13 +35,13 @@ export function BeanDetail({ uid, beanId }: { uid: string; beanId: string }) {
   ]
   return (
     <section>
-      <a href={`#/m/${uid}`} className="back">‹ 원두 목록</a>
+      <BackLink href={back}>{own ? '내 원두' : '원두 목록'}</BackLink>
       <h2>{bean.name} {bean.isBlend && <span className="pill">블렌드</span>}</h2>
       <p className="muted">{[bean.roaster, countryText(bean)].filter(Boolean).join(' · ')}</p>
       <RoastBar level={bean.roastLevel} />
       {bean.cupNotes.length > 0 && <div className="chips">{bean.cupNotes.map((n) => <span key={n} className="pill">{n}</span>)}</div>}
 
-      <Recipes bean={bean} />
+      <Recipes bean={bean} initial={serving === 'hot' ? false : serving === 'iced' ? true : undefined} />
 
       {bean.memo && (
         <div className="card">
@@ -92,13 +56,18 @@ export function BeanDetail({ uid, beanId }: { uid: string; beanId: string }) {
           {/^https?:\/\//.test(bean.url) && <div><dt>판매 페이지</dt><dd><a href={bean.url} target="_blank" rel="noreferrer">{new URL(bean.url).host}</a></dd></div>}
         </dl>
       </div>
+      {own && (
+        <p className="muted small">
+          수정은 ChatGPT에서 새 JSON을 받아 <a href="#/import">가져오기</a>로 다시 올리면 됩니다 · <button className="link danger" onClick={remove}>이 원두 삭제</button>
+        </p>
+      )}
     </section>
   )
 }
 
-function Recipes({ bean }: { bean: Bean }) {
+function Recipes({ bean, initial }: { bean: Bean; initial?: boolean }) {
   const servings = ([true, false] as const).filter((iced) => recipeCards(bean, iced).length)
-  const [iced, setIced] = useState<boolean>(servings[0] ?? true)
+  const [iced, setIced] = useState<boolean>(initial !== undefined && servings.includes(initial as never) ? initial : servings[0] ?? true)
   if (!servings.length) return <p className="muted">레시피가 없습니다.</p>
   const cards = recipeCards(bean, iced)
   return (

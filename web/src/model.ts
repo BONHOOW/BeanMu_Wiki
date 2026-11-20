@@ -220,6 +220,11 @@ export function finalRatioText(b: Brew): string | null {
 export const roastColor = (level: string) => ROAST_LEVELS.find(([n]) => n === level)?.[1] ?? '#9C9A94'
 export const roastIndex = (level: string) => ROAST_LEVELS.findIndex(([n]) => n === level)
 
+/** "콜롬비아 · 브라질" → ["콜롬비아", "브라질"] (블렌드는 구성 산지마다) */
+export const countryParts = (country: string) => country.split(/[·,/]/).map((s) => s.trim()).filter(Boolean)
+
+export const flagged = (country: string) => (FLAGS[country] ? `${FLAGS[country]} ${country}` : country)
+
 export function countryText(bean: Bean): string {
   const flag = FLAGS[bean.country]
   return flag ? `${flag} ${bean.country}` : bean.country
